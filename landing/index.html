@@ -3,99 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalBridge — Fast Offline File Transfer</title>
+    <title>LocalBridge — Elite Offline Transfer</title>
     <style>
         :root {
-            --bg: #0f0f0f;
-            --surface: #1a1a1a;
+            --bg: #050505;
+            --surface: #121212;
             --accent: #3b82f6;
-            --text: #f5f5f5;
-            --text-dim: #999999;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text: #ffffff;
+            --text-dim: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg);
             color: var(--text);
-            margin: 0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .glow-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% -20%, #1e3a8a 0%, transparent 50%);
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        nav {
+            padding: 20px 40px;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            padding: 40px 20px;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0; z-index: 100;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 8px; }
+        .logo span { color: var(--accent); }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+        .hero {
+            padding: 100px 0 60px;
             text-align: center;
         }
-        .hero {
-            max-width: 600px;
-            margin-bottom: 60px;
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(to bottom, #fff 40%, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        h1 { font-size: 3rem; margin-bottom: 10px; }
-        p { font-size: 1.2rem; color: var(--text-dim); }
-        .steps {
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+        .actions {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
             gap: 20px;
-            max-width: 1000px;
-            margin-bottom: 80px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
-        .step {
-            background: var(--surface);
-            padding: 30px;
-            border-radius: 20px;
-            width: 250px;
-            border: 1px solid #333;
+
+        .btn {
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; gap: 10px;
+            cursor: pointer;
         }
-        .step-num {
-            font-size: 2rem;
-            color: var(--accent);
-            font-weight: 800;
-            margin-bottom: 15px;
-        }
-        .install-btn {
+
+        .btn-primary {
             background: var(--accent);
             color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 999px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
+            box-shadow: 0 0 20px var(--accent-glow);
         }
-        footer { margin-top: auto; color: var(--text-dim); font-size: 0.9rem; }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: var(--glass);
+            color: white;
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 100px;
+        }
+
+        .step-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 40px;
+            border-radius: 24px;
+            transition: transform 0.3s ease;
+        }
+
+        .step-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+
+        .step-icon {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            width: 60px; height: 60px;
+            background: var(--accent-glow);
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 16px;
+        }
+
+        .step-card h3 { margin-bottom: 12px; font-size: 1.5rem; }
+        .step-card p { color: var(--text-dim); }
+
+        footer {
+            margin-top: 100px;
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+
+        @media (max-width: 768px) {
+            .hero { padding: 60px 0; }
+            .btn { width: 100%; justify-content: center; }
+        }
     </style>
 </head>
 <body>
-    <div class="hero">
-        <h1>🔗 LocalBridge</h1>
-        <p>Transfer files at full speed between your laptop and phone. No internet. No cloud. 100% private.</p>
-    </div>
+    <div class="glow-bg"></div>
+    
+    <nav>
+        <div class="logo">🔗 Local<span>Bridge</span></div>
+        <a href="https://github.com/javex-12/localbridge" class="btn btn-secondary" style="padding: 10px 20px; font-size: 0.9rem;">GitHub</a>
+    </nav>
 
-    <div class="steps">
-        <div class="step">
-            <div class="step-num">1</div>
-            <h3>Open Laptop App</h3>
-            <p>Launch LocalBridge on your computer to generate a secure QR code.</p>
-        </div>
-        <div class="step">
-            <div class="step-num">2</div>
-            <h3>Scan QR Code</h3>
-            <p>Use this mobile app to scan the code and establish a direct link.</p>
-        </div>
-        <div class="step">
-            <div class="step-num">3</div>
-            <h3>Move Files</h3>
-            <p>Browse your laptop files or send photos from your phone instantly.</p>
-        </div>
-    </div>
+    <main class="container">
+        <section class="hero">
+            <h1>The fastest bridge to your files.</h1>
+            <p>Skip the cloud. Skip the cables. Transfer files at pure hardware speeds between your laptop and phone, 100% offline.</p>
+            
+            <div class="actions">
+                <!-- Points to GitHub Releases for laptop version -->
+                <a href="https://github.com/javex-12/localbridge/releases" class="btn btn-primary">
+                    <span>💻 Download for Laptop</span>
+                </a>
+                <button id="install-btn" class="btn btn-secondary">
+                    <span>📱 Install Phone App</span>
+                </button>
+            </div>
+        </section>
 
-    <div id="action-section" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
-        <a href="#" class="install-btn" style="background: #22c55e;">Download for Laptop</a>
-        <button id="install-btn" class="install-btn">Install PWA on Phone</button>
-    </div>
+        <div class="steps">
+            <div class="step-card">
+                <div class="step-icon">⚡</div>
+                <h3>Zero Latency</h3>
+                <p>Built on Rust for maximum performance. Uses your local network bandwidth, not your data plan.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-icon">🛡️</div>
+                <h3>100% Private</h3>
+                <p>Your data never leaves your room. No cloud servers, no trackers, no middleman.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-icon">📱</div>
+                <h3>Multi-Platform</h3>
+                <p>One desktop app, any phone. The PWA works instantly on iOS and Android without an app store.</p>
+            </div>
+        </div>
+    </main>
 
-    <footer style="margin-top: 50px;">
-        <p>Built for speed. Built for Africa. Built offline-first.</p>
+    <footer>
+        <p>© 2026 LocalBridge — Built for Speed. Built for Privacy.</p>
     </footer>
 
     <script>
@@ -103,7 +208,6 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            document.getElementById('install-btn').style.display = 'block';
         });
 
         document.getElementById('install-btn').addEventListener('click', async () => {
@@ -112,7 +216,8 @@
                 const { outcome } = await deferredPrompt.userChoice;
                 deferredPrompt = null;
             } else {
-                window.location.href = '../pwa/index.html';
+                // Fallback to navigating to the PWA page
+                window.location.href = '/pwa/index.html';
             }
         });
     </script>

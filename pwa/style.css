@@ -1,13 +1,11 @@
 :root {
-    --bg-app: #0f0f0f;
-    --bg-panel: #1a1a1a;
-    --bg-surface: #242424;
-    --border: #333333;
+    --bg-app: #000000;
+    --bg-panel: #111111;
+    --bg-surface: #1a1a1a;
+    --border: rgba(255, 255, 255, 0.1);
     --accent: #3b82f6;
-    --success: #22c55e;
-    --error: #ef4444;
-    --text-primary: #f5f5f5;
-    --text-secondary: #999999;
+    --text: #ffffff;
+    --text-dim: #94a3b8;
 }
 
 * {
@@ -18,9 +16,9 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: -apple-system, system-ui, sans-serif;
     background-color: var(--bg-app);
-    color: var(--text-primary);
+    color: var(--text);
     height: 100vh;
     overflow: hidden;
 }
@@ -31,65 +29,43 @@ body {
     flex-direction: column;
 }
 
-.hidden {
-    display: none !important;
-}
+.hidden { display: none !important; }
 
 /* Connect Screen */
 #connect-screen {
     flex: 1;
+    padding: 40px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
-    gap: 30px;
+    justify-content: space-between;
 }
 
-.hero {
-    text-align: center;
-}
+.hero h1 { font-size: 2rem; font-weight: 800; text-align: center; }
+.hero p { color: var(--text-dim); text-align: center; margin-top: 10px; }
 
 #scanner-container {
-    width: 280px;
-    height: 280px;
+    width: 300px;
+    height: 300px;
     position: relative;
-    border-radius: 20px;
+    border-radius: 40px;
     overflow: hidden;
-    background: #000;
-    border: 2px solid var(--accent);
+    border: 3px solid var(--accent);
+    box-shadow: 0 0 50px rgba(59, 130, 246, 0.2);
 }
 
-#scanner-video {
+#scanner-video { width: 100%; height: 100%; object-fit: cover; }
+
+#btn-scan {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.scanner-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
-}
-
-.controls button {
+    max-width: 300px;
     background: var(--accent);
     color: white;
     border: none;
-    padding: 12px 30px;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-#setup-check {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 0.8rem;
+    padding: 18px;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
 }
 
 /* Browser Screen */
@@ -100,80 +76,65 @@ body {
 }
 
 header {
-    height: 60px;
-    padding: 0 15px;
-    border-bottom: 1px solid var(--border);
+    padding: 20px;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(20px);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+#btn-back-dir {
+    background: var(--bg-surface);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 12px;
 }
 
 #current-dir {
     flex: 1;
+    font-weight: 600;
     font-size: 0.9rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: var(--text-dim);
 }
 
 .grid-view {
-    flex: 1;
+    padding: 15px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 15px;
+    gap: 12px;
     overflow-y: auto;
 }
 
 .file-item {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    padding: 15px 10px;
+    border-radius: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: 10px;
-    background: var(--bg-panel);
-    border-radius: 12px;
-    gap: 5px;
+    gap: 8px;
 }
 
-.file-icon {
-    font-size: 2rem;
-}
-
-.file-name {
-    font-size: 0.7rem;
-    word-break: break-all;
-}
+.file-icon { font-size: 2.2rem; }
+.file-name { font-size: 0.75rem; font-weight: 500; text-align: center; color: var(--text-dim); }
 
 /* Transfer Drawer */
 #transfer-drawer {
-    height: 60px;
     background: var(--bg-panel);
     border-top: 1px solid var(--border);
-    transition: height 0.3s;
+    padding: 15px 25px;
+    border-radius: 30px 30px 0 0;
+    height: 80px;
 }
 
-/* Preview */
-#preview-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.95);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-#btn-close-preview {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
+.drawer-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--bg-surface);
+    border-radius: 99px;
+    margin: 0 auto 15px;
 }
