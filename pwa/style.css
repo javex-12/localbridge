@@ -20,7 +20,16 @@ body {
     overflow: hidden;
 }
 
-#app { height: 100%; display: flex; flex-direction: column; position: relative; }
+#app { height: 100%; display: flex; flex-direction: column; position: relative; z-index: 1; }
+
+.view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
 
 .hidden { display: none !important; }
 
@@ -28,11 +37,12 @@ body {
 .wallpaper-bg {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at 0% 0%, #1e3a8a 0%, transparent 40%),
-                radial-gradient(circle at 100% 100%, #581c87 0%, #000 60%);
+    background: #000;
+    background-image: 
+        radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+        radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
     z-index: -1;
-    filter: blur(100px);
-    opacity: 0.8;
 }
 
 .glass-effect {
@@ -168,15 +178,34 @@ p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 30px; }
     top: 0; z-index: 50;
 }
 
-.breadcrumb-pro { font-weight: 700; font-size: 1.1rem; }
+.mac-btn-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+}
+
+.mac-btn-icon.primary {
+    background: var(--mac-blue);
+    border: none;
+}
+
+.breadcrumb-pro { font-weight: 700; font-size: 1.1rem; flex: 1; text-align: center; }
 
 .pro-grid {
+    flex: 1;
     padding: 20px;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 15px;
     overflow-y: auto;
-    padding-bottom: 150px;
+    padding-bottom: 120px;
 }
 
 .pro-card {
@@ -188,7 +217,10 @@ p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 30px; }
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    transition: all 0.2s;
 }
+
+.pro-card:active { background: rgba(255,255,255,0.1); transform: scale(0.95); }
 
 .icon-box {
     width: 60px; height: 60px;

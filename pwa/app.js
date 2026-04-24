@@ -81,7 +81,8 @@ async function transitionToBrowser(payload) {
 
 async function loadRemoteFiles(path) {
     currentPath = path;
-    currentDirLabel.textContent = path === '/' ? 'Workstation' : path.split('/').pop();
+    const label = path === '/' ? 'Workstation' : path.split(/[\\\/]/).filter(Boolean).pop();
+    currentDirLabel.textContent = label || 'Workstation';
     
     try {
         const res = await fetch(`http://${laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${token}`);
@@ -161,6 +162,17 @@ function formatSize(bytes) {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function checkSetup() {
+    const wifiPill = document.getElementById('pill-wifi');
+    const camPill = document.getElementById('pill-camera');
+    
+    if (navigator.onLine) wifiPill.classList.add('ready');
+    
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+        if (devices.some(d => d.kind === 'videoinput')) camPill.classList.add('ready');
+    });
 }
 
 document.getElementById('btn-scan-start').onclick = startScan;
