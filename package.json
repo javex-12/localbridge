@@ -6,7 +6,8 @@
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "echo 'Vercel build complete'",
+    "desktop:build": "tauri build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
