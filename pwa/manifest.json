@@ -1,0 +1,15 @@
+{
+  "name": "LocalBridge",
+  "short_name": "LocalBridge",
+  "start_url": "/pwa/index.html",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/pwa/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

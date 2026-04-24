@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalBridge</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="logo">
+                <h1>🔗 LocalBridge</h1>
+            </div>
+            
+            <div id="qr-container">
+                <div id="qr-code"></div>
+                <p>Scan with your phone to connect</p>
+            </div>
+
+            <div id="status-panel">
+                <div class="status-item">
+                    <span id="network-badge" class="badge">Checking...</span>
+                </div>
+                <div class="status-item">
+                    <span id="connection-status">📱 No device connected</span>
+                </div>
+            </div>
+        </aside>
+
+        <main id="main-content">
+            <header>
+                <div class="breadcrumb">
+                    <span id="current-path">/</span>
+                </div>
+                <div class="actions">
+                    <button id="btn-grid" title="Grid View">🔲</button>
+                    <button id="btn-list" title="List View">≡</button>
+                    <input type="text" id="search-input" placeholder="Search files...">
+                </div>
+            </header>
+
+            <div id="file-browser" class="grid-view">
+                <!-- Files will be injected here -->
+            </div>
+
+            <section id="transfer-zone">
+                <h3>──── TRANSFERS ────</h3>
+                <div id="transfer-list">
+                    <!-- Active transfers -->
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js" type="module"></script>
+</body>
+</html>

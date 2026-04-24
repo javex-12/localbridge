@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LocalBridge Mobile</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div id="app">
+        <!-- Connection Screen -->
+        <section id="connect-screen">
+            <div class="hero">
+                <h1>🔗 LocalBridge</h1>
+                <p>Transfer files instantly</p>
+            </div>
+            
+            <div id="scanner-container">
+                <video id="scanner-video" playsinline></video>
+                <canvas id="scanner-canvas" hidden></canvas>
+                <div class="scanner-overlay"></div>
+            </div>
+
+            <div class="controls">
+                <button id="btn-scan">Scan Laptop QR</button>
+            </div>
+
+            <div id="setup-check">
+                <div class="check-item" id="check-wifi">⏳ Checking Network...</div>
+                <div class="check-item" id="check-camera">⏳ Checking Camera...</div>
+            </div>
+        </section>
+
+        <!-- Browser Screen (Hidden initially) -->
+        <section id="browser-screen" class="hidden">
+            <header>
+                <button id="btn-back-dir">⬅️</button>
+                <div id="current-dir">/</div>
+                <button id="btn-upload">➕</button>
+            </header>
+
+            <div id="file-list" class="grid-view"></div>
+
+            <!-- Bottom Transfer Drawer -->
+            <div id="transfer-drawer">
+                <div class="drawer-handle"></div>
+                <div class="drawer-content">
+                    <h3>Transfers</h3>
+                    <div id="mobile-transfer-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Preview Overlay -->
+        <div id="preview-overlay" class="hidden">
+            <button id="btn-close-preview">✕</button>
+            <div id="preview-content"></div>
+            <div class="preview-actions">
+                <button id="btn-download">Save to Phone</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- We'll assume jsQR is available locally -->
+    <script src="jsQR.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
