@@ -45,7 +45,7 @@ fn main() {
         .plugin(tauri_plugin_log::Builder::new().build())
         .setup(|app| {
             let handle = app.handle().clone();
-            tokio::spawn(async move {
+            tauri::async_runtime::spawn(async move {
                 start_server(handle, 3000).await;
             });
             Ok(())

@@ -2,67 +2,64 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>LocalBridge Mobile</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <div id="app">
-        <!-- Connection Screen -->
+        <!-- Connection Layer -->
         <section id="connect-screen">
             <div class="hero">
-                <h1>🔗 LocalBridge</h1>
-                <p>Transfer files instantly</p>
+                <h1>LocalBridge</h1>
+                <p>Pro-grade file link</p>
             </div>
             
-            <div id="scanner-container">
+            <div class="scanner-frame">
                 <video id="scanner-video" playsinline></video>
+                <div class="scan-line"></div>
                 <canvas id="scanner-canvas" hidden></canvas>
-                <div class="scanner-overlay"></div>
             </div>
 
-            <div class="controls">
-                <button id="btn-scan">Scan Laptop QR</button>
-            </div>
+            <button id="btn-scan">Scan to Connect</button>
 
-            <div id="setup-check">
-                <div class="check-item" id="check-wifi">⏳ Checking Network...</div>
-                <div class="check-item" id="check-camera">⏳ Checking Camera...</div>
+            <div class="setup-tray">
+                <div class="status-pill" id="check-wifi">Wi-Fi</div>
+                <div class="status-pill" id="check-camera">Camera</div>
             </div>
         </section>
 
-        <!-- Browser Screen (Hidden initially) -->
+        <!-- Main Workspace -->
         <section id="browser-screen" class="hidden">
             <header>
-                <button id="btn-back-dir">⬅️</button>
-                <div id="current-dir">/</div>
-                <button id="btn-upload">➕</button>
+                <button id="btn-back-dir" style="background:none; border:none; color:white; font-size:1.2rem;">􀯶</button>
+                <h1 id="current-dir-label">Files</h1>
+                <button id="btn-upload-pro" style="background:var(--accent); border:none; color:white; width:36px; height:36px; border-radius:10px; font-size:1.2rem;">+</button>
             </header>
 
-            <div id="file-list" class="grid-view"></div>
+            <div id="file-list" class="file-grid">
+                <!-- Premium cards injected here -->
+            </div>
 
-            <!-- Bottom Transfer Drawer -->
-            <div id="transfer-drawer">
-                <div class="drawer-handle"></div>
-                <div class="drawer-content">
-                    <h3>Transfers</h3>
-                    <div id="mobile-transfer-list"></div>
+            <!-- Global Nav -->
+            <nav class="nav-bar">
+                <div class="nav-item active">
+                    <span class="nav-icon">􀭊</span>
+                    <span>Browse</span>
                 </div>
-            </div>
+                <div class="nav-item">
+                    <span class="nav-icon">􀯙</span>
+                    <span>Activity</span>
+                </div>
+                <div class="nav-item">
+                    <span class="nav-icon">􀍟</span>
+                    <span>Settings</span>
+                </div>
+            </nav>
         </section>
-
-        <!-- Preview Overlay -->
-        <div id="preview-overlay" class="hidden">
-            <button id="btn-close-preview">✕</button>
-            <div id="preview-content"></div>
-            <div class="preview-actions">
-                <button id="btn-download">Save to Phone</button>
-            </div>
-        </div>
     </div>
 
-    <!-- We'll assume jsQR is available locally -->
     <script src="jsQR.js"></script>
     <script src="app.js"></script>
 </body>
