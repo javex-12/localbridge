@@ -3,61 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LocalBridge Mobile</title>
+    <title>LocalBridge Pro</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
+    <script src="gsap.js"></script>
 </head>
 <body>
     <div id="app">
-        <!-- Connection Layer -->
-        <section id="connect-screen">
-            <div class="hero">
-                <h1>LocalBridge</h1>
-                <p>Pro-grade file link</p>
+        <!-- macOS Desktop Environment -->
+        <div class="wallpaper-bg"></div>
+
+        <!-- Connection View (Initial) -->
+        <section id="connect-screen" class="view">
+            <div class="window-center">
+                <div class="mac-window glass-effect">
+                    <div class="window-header">
+                        <div class="window-controls">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <div class="title">LocalBridge Link</div>
+                    </div>
+                    <div class="window-content">
+                        <div class="scanner-wrap">
+                            <video id="scanner-video" playsinline></video>
+                            <div class="laser"></div>
+                        </div>
+                        <h2>Establish Secure Link</h2>
+                        <p>Scan the code on your workstation to begin</p>
+                        <button id="btn-scan-start" class="mac-btn primary">Initialize Scanner</button>
+                    </div>
+                </div>
             </div>
             
-            <div class="scanner-frame">
-                <video id="scanner-video" playsinline></video>
-                <div class="scan-line"></div>
-                <canvas id="scanner-canvas" hidden></canvas>
-            </div>
-
-            <button id="btn-scan">Scan to Connect</button>
-
-            <div class="setup-tray">
-                <div class="status-pill" id="check-wifi">Wi-Fi</div>
-                <div class="status-pill" id="check-camera">Camera</div>
+            <div class="dock-wrap">
+                <div class="dock glass-effect">
+                    <div class="dock-item ready" id="pill-wifi">📶 Wi-Fi</div>
+                    <div class="dock-item" id="pill-camera">📷 Camera</div>
+                </div>
             </div>
         </section>
 
-        <!-- Main Workspace -->
-        <section id="browser-screen" class="hidden">
-            <header>
-                <button id="btn-back-dir" style="background:none; border:none; color:white; font-size:1.2rem;">􀯶</button>
-                <h1 id="current-dir-label">Files</h1>
-                <button id="btn-upload-pro" style="background:var(--accent); border:none; color:white; width:36px; height:36px; border-radius:10px; font-size:1.2rem;">+</button>
-            </header>
-
-            <div id="file-list" class="file-grid">
-                <!-- Premium cards injected here -->
-            </div>
-
-            <!-- Global Nav -->
-            <nav class="nav-bar">
-                <div class="nav-item active">
-                    <span class="nav-icon">􀭊</span>
-                    <span>Browse</span>
+        <!-- Browser View (Hidden) -->
+        <section id="browser-screen" class="view hidden">
+            <nav class="mac-navbar glass-effect">
+                <div class="nav-left">
+                    <button id="btn-back-dir" class="mac-btn-icon">􀯶</button>
+                    <div class="breadcrumb-pro" id="current-dir-label">Files</div>
                 </div>
-                <div class="nav-item">
-                    <span class="nav-icon">􀯙</span>
-                    <span>Activity</span>
-                </div>
-                <div class="nav-item">
-                    <span class="nav-icon">􀍟</span>
-                    <span>Settings</span>
+                <div class="nav-right">
+                    <button id="btn-upload-pro" class="mac-btn small primary">Upload</button>
                 </div>
             </nav>
+
+            <div id="file-list" class="pro-grid">
+                <!-- Pro cards injected here -->
+            </div>
+
+            <!-- macOS System Dock -->
+            <div class="dock-wrap">
+                <nav class="pro-dock glass-effect">
+                    <div class="pro-dock-item active">
+                        <span class="dock-icon">􀭊</span>
+                        <span class="dock-label">Browse</span>
+                    </div>
+                    <div class="pro-dock-item">
+                        <span class="dock-icon">􀯙</span>
+                        <span class="dock-label">History</span>
+                    </div>
+                    <div class="pro-dock-item">
+                        <span class="dock-icon">􀍟</span>
+                        <span class="dock-label">System</span>
+                    </div>
+                </nav>
+            </div>
         </section>
+
+        <!-- Hidden canvas for QR -->
+        <canvas id="scanner-canvas" hidden></canvas>
     </div>
 
     <script src="jsQR.js"></script>
