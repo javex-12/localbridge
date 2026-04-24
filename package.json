@@ -6,7 +6,7 @@
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
-    "build": "echo 'Vercel build complete'",
+    "build": "mkdir -p public && cp landing/index.html public/index.html && cp -r pwa public/pwa",
     "desktop:build": "tauri build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
