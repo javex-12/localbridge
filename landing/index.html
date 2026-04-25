@@ -937,27 +937,307 @@
     </footer>
 
     <script>
-    /* ── PWA install ── */
-    let deferredPrompt;
+    /* ═══════════════════════════════════════════
+       Install modal styles (injected dynamically)
+    ═══════════════════════════════════════════ */
+    const modalStyle = document.createElement('style');
+    modalStyle.textContent = `
+    .install-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.70);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        display: flex; align-items: flex-end;
+        justify-content: center;
+        z-index: 999;
+        padding: 20px;
+        animation: fadeIn 0.22s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    .install-sheet {
+        width: 100%;
+        max-width: 480px;
+        border-radius: 28px 28px 20px 20px;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(16,22,38,0.98), rgba(10,14,22,0.98));
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 -20px 60px rgba(0,0,0,0.55);
+        animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slideUp { from { transform:translateY(100%); opacity:0; } to { transform:translateY(0); opacity:1; } }
+    .install-sheet-handle {
+        width: 44px; height: 5px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.18);
+        margin: 14px auto 0;
+    }
+    .install-sheet-body { padding: 20px 24px 28px; }
+    .install-sheet-icon {
+        display: flex; align-items: center; gap: 14px;
+        margin-bottom: 20px;
+    }
+    .install-app-icon {
+        width: 56px; height: 56px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #1a90ff, #0a84ff);
+        display: grid; place-items: center;
+        font-size: 1.3rem; font-weight: 900; color: #fff;
+        box-shadow: 0 8px 24px rgba(10,132,255,0.40);
+    }
+    .install-sheet h3 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em; }
+    .install-sheet .sub { font-size: 0.80rem; color: #8a9ab8; margin-top: 3px; }
+    .install-steps { margin: 20px 0; display: grid; gap: 12px; }
+    .install-step {
+        display: flex; align-items: flex-start; gap: 14px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.055);
+        border: 1px solid rgba(255,255,255,0.09);
+    }
+    .step-num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+        background: rgba(10,132,255,0.18);
+        color: #a8d4ff; font-size: 0.80rem; font-weight: 800;
+    }
+    .step-text strong { display: block; font-size: 0.88rem; font-weight: 700; }
+    .step-text span   { font-size: 0.76rem; color: #8a9ab8; }
+    .share-icon-inline {
+        display: inline-block;
+        width: 18px; height: 18px;
+        vertical-align: middle;
+        margin: 0 2px;
+    }
+    .install-sheet-actions { display: grid; gap: 10px; }
+    .install-close-btn {
+        width: 100%; padding: 14px;
+        border-radius: 14px; border: none; cursor: pointer;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.10);
+        color: #f0f4ff; font: 700 0.88rem 'Inter', sans-serif;
+        transition: all 0.14s ease;
+    }
+    .install-close-btn:hover { background: rgba(255,255,255,0.11); }
+    .install-open-btn {
+        width: 100%; padding: 15px;
+        border-radius: 14px; border: none; cursor: pointer;
+        background: linear-gradient(135deg, #1a90ff, #0a84ff);
+        color: #fff; font: 800 0.94rem 'Inter', sans-serif;
+        box-shadow: 0 8px 24px rgba(10,132,255,0.38);
+        transition: all 0.14s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .install-open-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(10,132,255,0.50); }
+    .success-banner {
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        display: flex; align-items: center; gap: 10px;
+        padding: 14px 20px; border-radius: 16px; z-index: 1000;
+        background: rgba(48,209,88,0.18);
+        border: 1px solid rgba(48,209,88,0.30);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        color: #a7f3bc; font: 700 0.85rem 'Inter', sans-serif;
+        white-space: nowrap;
+        animation: successIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.30);
+    }
+    @keyframes successIn {
+        from { opacity:0; transform: translateX(-50%) translateY(-14px) scale(0.92); }
+        to   { opacity:1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+    `;
+    document.head.appendChild(modalStyle);
+
+    /* ═══════════════════════════════════════════
+       Platform detection helpers
+    ═══════════════════════════════════════════ */
+    let deferredPrompt = null;
+    const isIOS        = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isAndroid    = /Android/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                      || window.navigator.standalone === true;
 
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
+        // Show install buttons as active
+        document.querySelectorAll('.install-trigger').forEach(btn => {
+            btn.style.boxShadow = '0 10px 30px rgba(10,132,255,0.50)';
+        });
     });
 
-    function triggerInstall() {
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        showSuccess('✓ LocalBridge installed! Open it from your home screen.');
+    });
+
+    /* ═══════════════════════════════════════════
+       Install trigger — platform-aware
+    ═══════════════════════════════════════════ */
+    async function triggerInstall() {
+        // Already installed as standalone app
+        if (isStandalone) {
+            showSuccess('✓ LocalBridge is already installed on this device!');
+            return;
+        }
+
+        // Chrome/Edge on Android or Desktop — native prompt available
         if (deferredPrompt) {
             deferredPrompt.prompt();
-            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-        } else {
-            window.location.href = 'pwa/index.html';
+            const result = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            if (result.outcome === 'accepted') {
+                showSuccess('✓ Installing… Open LocalBridge from your home screen!');
+            }
+            return;
         }
+
+        // iOS Safari — must use Share → Add to Home Screen
+        if (isIOS) {
+            showIOSModal();
+            return;
+        }
+
+        // Android but prompt not ready (page not served over HTTPS yet, or already dismissed)
+        if (isAndroid) {
+            showAndroidFallbackModal();
+            return;
+        }
+
+        // Desktop fallback — open PWA in new tab
+        window.open('pwa/index.html', '_blank');
     }
 
-    document.getElementById('install-btn').addEventListener('click', triggerInstall);
-    document.getElementById('install-btn-2').addEventListener('click', triggerInstall);
+    /* ═══════════════════════════════════════════
+       iOS instructions modal
+    ═══════════════════════════════════════════ */
+    function showIOSModal() {
+        const overlay = document.createElement('div');
+        overlay.className = 'install-overlay';
+        overlay.innerHTML = `
+            <div class="install-sheet">
+                <div class="install-sheet-handle"></div>
+                <div class="install-sheet-body">
+                    <div class="install-sheet-icon">
+                        <div class="install-app-icon">LB</div>
+                        <div>
+                            <h3>Install LocalBridge</h3>
+                            <p class="sub">Add to your iPhone home screen</p>
+                        </div>
+                    </div>
+                    <div class="install-steps">
+                        <div class="install-step">
+                            <span class="step-num">1</span>
+                            <div class="step-text">
+                                <strong>Tap the Share button</strong>
+                                <span>It looks like this
+                                    <svg class="share-icon-inline" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                        <polyline points="16 6 12 2 8 6"/>
+                                        <line x1="12" y1="2" x2="12" y2="15"/>
+                                    </svg>
+                                at the bottom of Safari
+                                </span>
+                            </div>
+                        </div>
+                        <div class="install-step">
+                            <span class="step-num">2</span>
+                            <div class="step-text">
+                                <strong>Tap "Add to Home Screen"</strong>
+                                <span>Scroll down in the Share menu to find it</span>
+                            </div>
+                        </div>
+                        <div class="install-step">
+                            <span class="step-num">3</span>
+                            <div class="step-text">
+                                <strong>Tap "Add" in the top right</strong>
+                                <span>LocalBridge will appear on your home screen</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="install-sheet-actions">
+                        <button class="install-close-btn">Got it, I'll do it now</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.install-close-btn').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
 
-    /* ── GSAP scroll reveals ── */
+    /* ═══════════════════════════════════════════
+       Android fallback (open PWA directly)
+    ═══════════════════════════════════════════ */
+    function showAndroidFallbackModal() {
+        const overlay = document.createElement('div');
+        overlay.className = 'install-overlay';
+        overlay.innerHTML = `
+            <div class="install-sheet">
+                <div class="install-sheet-handle"></div>
+                <div class="install-sheet-body">
+                    <div class="install-sheet-icon">
+                        <div class="install-app-icon">LB</div>
+                        <div>
+                            <h3>Install LocalBridge</h3>
+                            <p class="sub">Add to your Android home screen</p>
+                        </div>
+                    </div>
+                    <div class="install-steps">
+                        <div class="install-step">
+                            <span class="step-num">1</span>
+                            <div class="step-text">
+                                <strong>Open in Chrome</strong>
+                                <span>Tap the button below to open the app in Chrome</span>
+                            </div>
+                        </div>
+                        <div class="install-step">
+                            <span class="step-num">2</span>
+                            <div class="step-text">
+                                <strong>Tap the ⋮ menu → "Add to Home screen"</strong>
+                                <span>Chrome will install it like a native app</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="install-sheet-actions">
+                        <button class="install-open-btn" id="open-pwa-btn">Open LocalBridge in Chrome</button>
+                        <button class="install-close-btn" id="close-modal-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#open-pwa-btn').addEventListener('click', () => {
+            window.open('pwa/index.html', '_blank');
+            overlay.remove();
+        });
+        overlay.querySelector('#close-modal-btn').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+
+    /* ═══════════════════════════════════════════
+       Success banner
+    ═══════════════════════════════════════════ */
+    function showSuccess(msg) {
+        const banner = document.createElement('div');
+        banner.className = 'success-banner';
+        banner.textContent = msg;
+        document.body.appendChild(banner);
+        setTimeout(() => {
+            banner.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateX(-50%) translateY(-10px)';
+            setTimeout(() => banner.remove(), 400);
+        }, 4000);
+    }
+
+    /* ═══════════════════════════════════════════
+       Wire all install buttons
+    ═══════════════════════════════════════════ */
+    document.querySelectorAll('.install-trigger').forEach(btn => {
+        btn.addEventListener('click', triggerInstall);
+    });
+
+    /* ═══════════════════════════════════════════
+       GSAP scroll reveals
+    ═══════════════════════════════════════════ */
     function reveal() {
         document.querySelectorAll('.reveal').forEach((el) => {
             const rect = el.getBoundingClientRect();
@@ -970,15 +1250,13 @@
 
     window.addEventListener('scroll', reveal, { passive: true });
 
-    /* ── Hero entrance ── */
-    gsap.from('#hero-copy', { duration: 1.0, y: 32, opacity: 0, ease: 'expo.out', delay: 0.1 });
+    /* hero entrance */
+    gsap.from('#hero-copy',    { duration: 1.0, y: 32, opacity: 0, ease: 'expo.out', delay: 0.1 });
     gsap.from('#hero-preview', { duration: 1.0, y: 32, opacity: 0, ease: 'expo.out', delay: 0.22 });
 
-    /* ── Animated preview file "pulse" ── */
+    /* animated preview files */
     gsap.to('.preview-file', {
-        scale: 1.04,
-        duration: 1.8,
-        ease: 'sine.inOut',
+        scale: 1.04, duration: 1.8, ease: 'sine.inOut',
         stagger: { each: 0.3, repeat: -1, yoyo: true },
     });
 
