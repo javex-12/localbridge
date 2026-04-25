@@ -11,191 +11,903 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
     <script src="gsap.js"></script>
     <script src="jsQR.js"></script>
+    <style>
+    /* ═══════════════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════════════ */
+    :root {
+        --bg:            #080b12;
+        --surface:       rgba(255,255,255,0.06);
+        --surface-hov:   rgba(255,255,255,0.09);
+        --border:        rgba(255,255,255,0.10);
+        --border-str:    rgba(255,255,255,0.18);
+        --border-acc:    rgba(10,132,255,0.38);
+        --text-pri:      #eef2ff;
+        --text-sec:      #8a9ab8;
+        --text-mut:      #4e5d7a;
+        --accent:        #0a84ff;
+        --acc-glow:      rgba(10,132,255,0.30);
+        --acc-soft:      rgba(10,132,255,0.13);
+        --acc-text:      #a8d4ff;
+        --green:         #30d158;
+        --green-soft:    rgba(48,209,88,0.13);
+        --green-text:    #a7f3bc;
+        --yellow:        #ffd60a;
+        --red:           #ff5f57;
+        --r-sm:  10px;
+        --r-md:  16px;
+        --r-lg:  22px;
+        --r-xl:  28px;
+        --r-2xl: 36px;
+        --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+        --ease-out:    cubic-bezier(0.22,1,0.36,1);
+        --topbar-h: 64px;
+        --toolbar-h: 52px;
+        --dock-h: 74px;
+        --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* ═══════════════════════════════════════════════
+       RESET
+    ═══════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+        height: 100%;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 14px;
+        color: var(--text-pri);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+    button, input { font: inherit; color: inherit; }
+    button { border: none; background: none; cursor: pointer; }
+    input  { border: none; outline: none; background: none; }
+    svg    { display: block; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════════
+       APP SHELL + AMBIENT ORBS
+    ═══════════════════════════════════════════════ */
+    #app { position: relative; height: 100%; overflow: hidden; }
+
+    .mesh {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(90px);
+        pointer-events: none;
+        animation: meshDrift 22s ease-in-out infinite alternate;
+        z-index: 0;
+    }
+    .mesh-one {
+        width: 380px; height: 380px;
+        top: -140px; left: -100px;
+        background: radial-gradient(circle, rgba(80,60,255,0.55), rgba(40,80,255,0.15));
+    }
+    .mesh-two {
+        width: 340px; height: 340px;
+        right: -120px; bottom: -100px;
+        background: radial-gradient(circle, rgba(10,132,255,0.40), rgba(0,210,230,0.10));
+        animation-duration: 26s;
+        animation-delay: -10s;
+    }
+    @keyframes meshDrift {
+        0%   { transform: translate(0,0) scale(1); }
+        50%  { transform: translate(24px,-18px) scale(1.06); }
+        100% { transform: translate(-16px,22px) scale(0.94); }
+    }
+
+    /* ═══════════════════════════════════════════════
+       GLASS
+    ═══════════════════════════════════════════════ */
+    .glass-panel {
+        background: linear-gradient(135deg,
+            rgba(255,255,255,0.09) 0%,
+            rgba(255,255,255,0.04) 100%);
+        border: 1px solid var(--border);
+        box-shadow: 0 20px 55px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.08);
+        backdrop-filter: blur(36px) saturate(180%);
+        -webkit-backdrop-filter: blur(36px) saturate(180%);
+    }
+
+    /* ═══════════════════════════════════════════════
+       SCREENS  — critical: use display:none for hidden
+    ═══════════════════════════════════════════════ */
+    .screen {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        z-index: 1;
+    }
+    .hidden { display: none !important; }
+
+    /* ═══════════════════════════════════════════════
+       CONNECT SCREEN
+    ═══════════════════════════════════════════════ */
+    #connect-screen {
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background:
+            radial-gradient(ellipse at top, rgba(60,80,255,0.14) 0%, transparent 60%),
+            var(--bg);
+    }
+
+    .connect-window {
+        width: 100%;
+        max-width: 420px;
+        border-radius: var(--r-2xl);
+        overflow: hidden;
+    }
+
+    .window-bar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255,255,255,0.03);
+    }
+
+    .traffic-lights { display: flex; gap: 7px; }
+    .light {
+        width: 12px; height: 12px;
+        border-radius: 50%;
+        position: relative;
+    }
+    .light::after {
+        content: '';
+        position: absolute; inset: 2px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.32);
+    }
+    .light.close    { background: var(--red);    box-shadow: 0 0 8px rgba(255,95,87,0.5); }
+    .light.minimize { background: var(--yellow); box-shadow: 0 0 8px rgba(255,214,10,0.4); }
+    .light.expand   { background: var(--green);  box-shadow: 0 0 8px rgba(48,209,88,0.4); }
+
+    .window-title {
+        font-size: 0.80rem;
+        font-weight: 700;
+        color: var(--text-sec);
+    }
+
+    .connect-body {
+        padding: 28px 24px 32px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .app-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px; height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #1a90ff, #0a84ff);
+        box-shadow: 0 10px 30px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #fff;
+        letter-spacing: -0.04em;
+        margin-bottom: 18px;
+    }
+
+    .eyebrow {
+        display: block;
+        color: var(--text-mut);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.66rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .connect-body h1 {
+        font-size: 1.7rem;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        background: linear-gradient(135deg, #fff 30%, var(--acc-text));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+    }
+
+    .lead {
+        font-size: 0.85rem;
+        line-height: 1.65;
+        color: var(--text-sec);
+        margin-bottom: 24px;
+    }
+
+    /* scanner */
+    .scanner-shell {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: var(--r-lg);
+        overflow: hidden;
+        background: #000;
+        margin-bottom: 18px;
+        border: 1px solid var(--border);
+    }
+    #scanner-video {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .scanner-overlay {
+        position: absolute; inset: 0;
+        background: rgba(0,0,0,0.40);
+    }
+    .scanner-line {
+        position: absolute;
+        left: 15%; right: 15%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        box-shadow: 0 0 12px var(--acc-glow);
+        animation: scanLine 2s ease-in-out infinite;
+    }
+    @keyframes scanLine {
+        0%   { top: 15%; opacity: 0.5; }
+        50%  { opacity: 1; }
+        100% { top: 85%; opacity: 0.5; }
+    }
+    .scanner-corners {
+        position: absolute;
+        inset: 14%;
+        pointer-events: none;
+    }
+    .scanner-corners span {
+        position: absolute;
+        width: 22px; height: 22px;
+        border-color: var(--accent);
+        border-style: solid;
+        border-width: 0;
+    }
+    .scanner-corners span:nth-child(1) { top:0; left:0;   border-top-width:3px; border-left-width:3px;   border-radius:4px 0 0 0; }
+    .scanner-corners span:nth-child(2) { top:0; right:0;  border-top-width:3px; border-right-width:3px;  border-radius:0 4px 0 0; }
+    .scanner-corners span:nth-child(3) { bottom:0; left:0;  border-bottom-width:3px; border-left-width:3px;  border-radius:0 0 0 4px; }
+    .scanner-corners span:nth-child(4) { bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 4px 0; }
+
+    /* setup pills */
+    .setup-pills {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .setup-pill {
+        padding: 10px 12px;
+        border-radius: var(--r-md);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--text-sec);
+        text-align: center;
+        transition: all 0.15s ease;
+    }
+    .setup-pill.ok   { color: var(--green-text); background: var(--green-soft); border-color: rgba(48,209,88,0.22); }
+    .setup-pill.fail { color: #ffb0ab; background: rgba(255,95,87,0.12); border-color: rgba(255,95,87,0.22); }
+
+    /* primary CTA */
+    .primary-btn {
+        width: 100%;
+        padding: 16px;
+        border-radius: var(--r-lg);
+        background: linear-gradient(135deg, #1a90ff 0%, #0a84ff 100%);
+        color: #fff;
+        font-size: 0.96rem;
+        font-weight: 800;
+        box-shadow: 0 10px 28px rgba(10,132,255,0.38), inset 0 1px 0 rgba(255,255,255,0.22);
+        transition: all 0.14s var(--ease-spring);
+        letter-spacing: -0.01em;
+    }
+    .primary-btn:hover  { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(10,132,255,0.50); }
+    .primary-btn:active { transform: scale(0.98); }
+
+    /* ═══════════════════════════════════════════════
+       BROWSER SCREEN
+    ═══════════════════════════════════════════════ */
+    #browser-screen {
+        display: flex;
+        flex-direction: column;
+        background:
+            radial-gradient(ellipse at top right, rgba(10,80,255,0.10), transparent 55%),
+            var(--bg);
+    }
+
+    /* topbar */
+    .topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 14px;
+        height: var(--topbar-h);
+        flex-shrink: 0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        z-index: 10;
+    }
+    .topbar-copy { flex: 1; min-width: 0; }
+    .topbar-copy .eyebrow { margin-bottom: 2px; font-size: 0.60rem; }
+    .topbar-copy h2 {
+        font-size: 1.0rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .session-label { font-size: 0.68rem; color: var(--green); font-weight: 600; }
+
+    /* toolbar */
+    .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        height: var(--toolbar-h);
+        flex-shrink: 0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        z-index: 9;
+    }
+    .path-chip {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+        font-size: 0.70rem;
+        color: var(--text-sec);
+        max-width: 110px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .search-field {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        height: 36px;
+        padding: 0 12px;
+        border-radius: var(--r-md);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        cursor: text;
+        transition: all 0.14s ease;
+    }
+    .search-field:focus-within {
+        border-color: var(--border-acc);
+        box-shadow: 0 0 0 3px rgba(10,132,255,0.12);
+    }
+    .search-field input { flex: 1; font-size: 0.82rem; color: var(--text-pri); min-width: 0; }
+    .search-field input::placeholder { color: var(--text-mut); }
+
+    /* panes */
+    .pane {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 14px;
+        padding-bottom: calc(var(--dock-h) + var(--safe-bot) + 14px);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.08) transparent;
+    }
+    .pane-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .pane-head .eyebrow { margin-bottom: 2px; }
+    .pane-head h3 {
+        font-size: 1.0rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
+
+    /* FILE GRID */
+    .file-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 10px;
+    }
+    .file-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px;
+        border-radius: var(--r-lg);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.14s var(--ease-spring);
+        animation: cellIn 0.25s var(--ease-out) both;
+    }
+    @keyframes cellIn {
+        from { opacity:0; transform:scale(0.94) translateY(10px); }
+        to   { opacity:1; transform:scale(1) translateY(0); }
+    }
+    .file-cell:hover  { background: var(--surface-hov); border-color: var(--border-str); transform: scale(0.98); }
+    .file-cell:active { transform: scale(0.96); }
+
+    .file-cell-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 44px; height: 44px;
+        border-radius: 13px;
+        flex-shrink: 0;
+    }
+    .file-cell-icon.kind-folder   { background:rgba(255,180,40,0.14);  border:1px solid rgba(255,180,40,0.20); }
+    .file-cell-icon.kind-image    { background:rgba(10,200,255,0.14);  border:1px solid rgba(10,200,255,0.20); }
+    .file-cell-icon.kind-video    { background:rgba(180,50,255,0.14);  border:1px solid rgba(180,50,255,0.20); }
+    .file-cell-icon.kind-audio    { background:rgba(255,80,120,0.14);  border:1px solid rgba(255,80,120,0.20); }
+    .file-cell-icon.kind-archive  { background:rgba(255,140,50,0.14);  border:1px solid rgba(255,140,50,0.20); }
+    .file-cell-icon.kind-document { background:rgba(80,200,120,0.14);  border:1px solid rgba(80,200,120,0.20); }
+    .file-cell-icon.kind-file     { background:var(--surface);          border:1px solid var(--border); }
+
+    .file-cell-body { min-width: 0; }
+    .file-cell-name {
+        font-size: 0.78rem; font-weight: 700;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        color: var(--text-pri);
+    }
+    .file-cell-size { font-size: 0.68rem; color: var(--text-mut); margin-top: 2px; }
+    .file-cell-thumb {
+        width: 100%; aspect-ratio: 4/3;
+        border-radius: var(--r-sm);
+        object-fit: cover;
+        display: block;
+    }
+
+    /* round buttons */
+    .round-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+        transition: all 0.14s var(--ease-spring);
+    }
+    .round-btn:hover  { background: var(--surface-hov); transform: scale(1.08); }
+    .round-btn:active { transform: scale(0.94); }
+    .round-btn-accent {
+        background: linear-gradient(135deg, #1a90ff, #0a84ff);
+        border-color: rgba(10,132,255,0.30);
+        box-shadow: 0 6px 20px rgba(10,132,255,0.38);
+        color: #fff;
+    }
+    .round-btn-accent:hover { box-shadow: 0 10px 28px rgba(10,132,255,0.55); }
+
+    /* ghost btn */
+    .ghost-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 13px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--text-sec);
+        transition: all 0.14s ease;
+    }
+    .ghost-btn:hover { background: var(--surface-hov); border-color: var(--border-str); }
+
+    /* TRANSFERS PANE */
+    .transfer-list { display: grid; gap: 10px; }
+    .transfer-empty {
+        padding: 24px 20px;
+        border-radius: var(--r-lg);
+        background: var(--surface);
+        border: 1px dashed var(--border);
+        text-align: center;
+    }
+    .transfer-empty strong { font-size: 0.9rem; }
+    .transfer-empty p { font-size: 0.78rem; color: var(--text-sec); margin-top: 6px; }
+
+    .transfer-item {
+        padding: 14px 16px;
+        border-radius: var(--r-lg);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        animation: cellIn 0.25s var(--ease-out) both;
+    }
+    .transfer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .transfer-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        background: var(--acc-soft);
+        color: var(--acc-text);
+        flex-shrink: 0;
+    }
+    .transfer-info { flex: 1; min-width: 0; }
+    .transfer-name {
+        font-size: 0.84rem; font-weight: 700;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .transfer-sub { margin-top: 3px; font-size: 0.70rem; color: var(--text-sec); }
+    .transfer-status {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: capitalize;
+        letter-spacing: 0.04em;
+        background: var(--surface);
+        flex-shrink: 0;
+    }
+    .transfer-status.done        { background:var(--green-soft); color:var(--green-text); }
+    .transfer-status.failed      { background:rgba(255,95,87,0.13); color:#ffb0ab; }
+    .transfer-status.uploading   { background:var(--acc-soft); color:var(--acc-text); }
+
+    .progress-bar {
+        margin-top: 10px;
+        height: 4px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.06);
+    }
+    .progress-fill {
+        height: 100%;
+        width: 0;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #60b0ff, #0a84ff, #80e4ff);
+        box-shadow: 0 0 10px rgba(10,132,255,0.45);
+        transition: width 0.4s ease;
+    }
+    .progress-fill.is-indeterminate {
+        width: 40%;
+        animation: indeterminate 1.4s ease-in-out infinite;
+    }
+    @keyframes indeterminate {
+        0%   { transform: translateX(-140%); }
+        100% { transform: translateX(340%); }
+    }
+
+    /* SETTINGS PANE */
+    .settings-stack { display: grid; gap: 12px; }
+    .glass-panel-inner {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .settings-card { padding: 16px 18px; border-radius: var(--r-lg); }
+    .settings-label {
+        display: block;
+        font-size: 0.66rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.12em;
+        color: var(--text-mut); margin-bottom: 6px;
+    }
+    .settings-card strong {
+        display: block;
+        font-size: 0.9rem; font-weight: 700;
+        word-break: break-all; margin-bottom: 8px;
+    }
+    .settings-card p { font-size: 0.76rem; color: var(--text-sec); line-height: 1.55; }
+    .settings-actions { margin-top: 4px; }
+
+    /* DOCK */
+    .dock {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        height: calc(var(--dock-h) + var(--safe-bot));
+        padding-bottom: var(--safe-bot);
+        padding-left: 16px; padding-right: 16px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        z-index: 20;
+    }
+    .dock-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 16px;
+        border-radius: var(--r-md);
+        color: var(--text-mut);
+        font-size: 0.60rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        transition: all 0.14s var(--ease-spring);
+        flex: 1;
+        max-width: 90px;
+    }
+    .dock-item:hover  { color: var(--text-sec); transform: translateY(-2px); }
+    .dock-item:active { transform: scale(0.92); }
+    .dock-item.is-active { color: var(--accent); }
+    .dock-item.is-active svg { filter: drop-shadow(0 0 8px rgba(10,132,255,0.6)); }
+    .dock-indicator {
+        display: block;
+        width: 4px; height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+        opacity: 0;
+        transition: opacity 0.14s ease;
+    }
+    .dock-item.is-active .dock-indicator { opacity: 1; }
+
+    /* EMPTY STATE */
+    .empty-state {
+        padding: 40px 20px;
+        text-align: center;
+        border-radius: var(--r-xl);
+        border: 1px dashed var(--border);
+        background: rgba(255,255,255,0.02);
+        margin-top: 10px;
+    }
+    .empty-state h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .empty-state p  { font-size: 0.80rem; color: var(--text-sec); line-height: 1.5; }
+
+    /* UPLOAD TOAST */
+    .upload-toast {
+        position: fixed;
+        bottom: calc(var(--dock-h) + var(--safe-bot) + 10px);
+        left: 14px; right: 14px;
+        padding: 14px 16px;
+        border-radius: var(--r-lg);
+        background: rgba(10,132,255,0.18);
+        border: 1px solid rgba(10,132,255,0.30);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.3s var(--ease-spring);
+        z-index: 50;
+        pointer-events: none;
+    }
+    .upload-toast.visible { transform: translateY(0); opacity: 1; }
+    .upload-toast-bar {
+        flex: 1;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.14);
+        overflow: hidden;
+    }
+    .upload-toast-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: inherit;
+        transition: width 0.3s ease;
+    }
+
+    /* skeleton shimmer */
+    @keyframes shimmer {
+        to { background-position: 200% center; }
+    }
+    .skeleton {
+        background: linear-gradient(90deg,
+            rgba(255,255,255,0.04) 25%,
+            rgba(255,255,255,0.09) 50%,
+            rgba(255,255,255,0.04) 75%);
+        background-size: 200% auto;
+        animation: shimmer 1.5s linear infinite;
+        border-radius: 8px;
+    }
+
+    #file-input  { display: none; }
+    #scanner-canvas { display: none; }
+    </style>
 </head>
 <body>
-    <div id="app">
-        <div class="mesh mesh-one"></div>
-        <div class="mesh mesh-two"></div>
+<div id="app">
+    <div class="mesh mesh-one" aria-hidden="true"></div>
+    <div class="mesh mesh-two" aria-hidden="true"></div>
 
-        <!-- ─── CONNECT SCREEN ─── -->
-        <section id="connect-screen" class="screen">
-            <div id="connect-window" class="connect-window glass-panel">
-                <div class="window-bar">
-                    <div class="traffic-lights" aria-hidden="true">
-                        <span class="light close"></span>
-                        <span class="light minimize"></span>
-                        <span class="light expand"></span>
-                    </div>
-                    <span class="window-title">Pairing Assistant</span>
+    <!-- ═══ CONNECT SCREEN ═══════════════════════════════ -->
+    <section id="connect-screen" class="screen">
+        <div id="connect-window" class="connect-window glass-panel">
+            <div class="window-bar">
+                <div class="traffic-lights" aria-hidden="true">
+                    <span class="light close"></span>
+                    <span class="light minimize"></span>
+                    <span class="light expand"></span>
                 </div>
-
-                <div class="connect-body">
-                    <div class="app-mark">LB</div>
-                    <p class="eyebrow">Mobile Bridge</p>
-                    <h1>Link your workstation</h1>
-                    <p class="lead">Scan the QR shown on your desktop. After pairing, browse any folder and send files directly back into it — no cloud, no cables.</p>
-
-                    <div class="scanner-shell">
-                        <video id="scanner-video" playsinline></video>
-                        <div class="scanner-overlay"></div>
-                        <div class="scanner-line"></div>
-                        <div class="scanner-corners" aria-hidden="true">
-                            <span></span><span></span><span></span><span></span>
-                        </div>
-                    </div>
-
-                    <div class="setup-pills">
-                        <div id="pill-network" class="setup-pill">Network status</div>
-                        <div id="pill-camera" class="setup-pill">Camera check</div>
-                    </div>
-
-                    <button id="btn-scan-start" class="primary-btn">Start Camera Scan</button>
-                </div>
+                <span class="window-title">Pairing Assistant</span>
             </div>
-        </section>
 
-        <!-- ─── BROWSER SCREEN ─── -->
-        <section id="browser-screen" class="screen hidden">
-            <header class="topbar glass-panel">
-                <button id="btn-back-dir" class="round-btn" aria-label="Go to parent folder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 18l-6-6 6-6"/>
-                    </svg>
-                </button>
+            <div class="connect-body">
+                <div class="app-mark">LB</div>
+                <p class="eyebrow">Mobile Bridge</p>
+                <h1>Link your workstation</h1>
+                <p class="lead">Scan the QR shown on your desktop. After pairing, browse any folder and upload files straight into it — no cloud, no cables.</p>
 
-                <div class="topbar-copy">
-                    <p class="eyebrow">Remote Workspace</p>
-                    <h2 id="current-dir-label">Workstation</h2>
-                    <span id="session-label" class="session-label">● Connected locally</span>
-                </div>
-
-                <button id="btn-upload-pro" class="round-btn round-btn-accent" aria-label="Upload files">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="16 16 12 12 8 16"/>
-                        <line x1="12" y1="12" x2="12" y2="21"/>
-                        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-                    </svg>
-                </button>
-            </header>
-
-            <section class="toolbar glass-panel">
-                <div id="current-path-mobile" class="path-chip">/</div>
-                <label class="search-field" for="mobile-search">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="7"/>
-                        <path d="M20 20l-3.5-3.5"/>
-                    </svg>
-                    <input id="mobile-search" type="text" placeholder="Filter this folder…" autocomplete="off">
-                </label>
-            </section>
-
-            <!-- Browse pane -->
-            <section id="browse-pane" class="pane">
-                <div class="pane-head">
-                    <div>
-                        <p class="eyebrow">Browse</p>
-                        <h3 id="browse-count">0 items</h3>
-                    </div>
-                    <button id="btn-clear-mobile-search" class="ghost-btn hidden">✕ Clear</button>
-                </div>
-                <div id="file-list" class="file-grid"></div>
-                <div id="browser-empty" class="empty-state hidden">
-                    <h3>No files found</h3>
-                    <p>Try a different folder or clear the current filter.</p>
-                </div>
-            </section>
-
-            <!-- Transfers pane -->
-            <section id="transfers-pane" class="pane hidden">
-                <div class="pane-head">
-                    <div>
-                        <p class="eyebrow">Transfers</p>
-                        <h3 id="transfer-count-mobile">0 uploads</h3>
-                    </div>
-                </div>
-                <div id="mobile-transfer-list" class="transfer-list">
-                    <div class="transfer-empty">
-                        <strong>No uploads yet</strong>
-                        <p>Tap the upload button to send files to the desktop.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Settings pane -->
-            <section id="settings-pane" class="pane hidden">
-                <div class="pane-head">
-                    <div>
-                        <p class="eyebrow">Session</p>
-                        <h3>Connection details</h3>
+                <div class="scanner-shell">
+                    <video id="scanner-video" playsinline></video>
+                    <div class="scanner-overlay"></div>
+                    <div class="scanner-line"></div>
+                    <div class="scanner-corners" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span>
                     </div>
                 </div>
 
-                <div class="settings-stack">
-                    <article class="settings-card glass-panel-inner">
-                        <span class="settings-label">Desktop host</span>
-                        <strong id="settings-host">Not connected</strong>
-                        <p>Your phone talks directly to the LocalBridge server on the local network.</p>
-                    </article>
-
-                    <article class="settings-card glass-panel-inner">
-                        <span class="settings-label">Current folder</span>
-                        <strong id="settings-folder">/</strong>
-                        <p>Uploads land in the folder you are currently browsing.</p>
-                    </article>
-
-                    <div class="settings-actions">
-                        <button id="btn-rescan" class="primary-btn">Scan New Desktop</button>
-                    </div>
+                <div class="setup-pills">
+                    <div id="pill-network" class="setup-pill">Network status</div>
+                    <div id="pill-camera"  class="setup-pill">Camera check</div>
                 </div>
-            </section>
 
-            <!-- Dock -->
-            <nav class="dock glass-panel" aria-label="Primary">
-                <button class="dock-item is-active" data-pane="browse">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                        <polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                    <span>Browse</span>
-                    <i class="dock-indicator"></i>
-                </button>
-
-                <button class="dock-item" data-pane="transfers">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="8 17 12 21 16 17"/>
-                        <line x1="12" y1="12" x2="12" y2="21"/>
-                        <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
-                    </svg>
-                    <span>Transfers</span>
-                    <i class="dock-indicator"></i>
-                </button>
-
-                <button class="dock-item" data-pane="settings">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                    <span>Session</span>
-                    <i class="dock-indicator"></i>
-                </button>
-            </nav>
-        </section>
-
-        <!-- Upload toast -->
-        <div id="upload-toast" class="upload-toast">
-            <span id="upload-toast-label">Uploading…</span>
-            <div class="upload-toast-bar">
-                <div id="upload-toast-fill" class="upload-toast-fill" style="width:0%"></div>
+                <button id="btn-scan-start" class="primary-btn">Start Camera Scan</button>
             </div>
         </div>
+    </section>
 
-        <input id="file-input" type="file" multiple hidden>
-        <canvas id="scanner-canvas" hidden></canvas>
+    <!-- ═══ BROWSER SCREEN ════════════════════════════════ -->
+    <section id="browser-screen" class="screen hidden">
+
+        <!-- Top bar -->
+        <header class="topbar glass-panel">
+            <button id="btn-back-dir" class="round-btn" aria-label="Go to parent folder">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+
+            <div class="topbar-copy">
+                <p class="eyebrow">Remote Workspace</p>
+                <h2 id="current-dir-label">Workstation</h2>
+                <span id="session-label" class="session-label">● Connected locally</span>
+            </div>
+
+            <button id="btn-upload-pro" class="round-btn round-btn-accent" aria-label="Upload files">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 16 12 12 8 16"/>
+                    <line x1="12" y1="12" x2="12" y2="21"/>
+                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Toolbar: path + search -->
+        <section class="toolbar glass-panel">
+            <div id="current-path-mobile" class="path-chip">/</div>
+            <label class="search-field" for="mobile-search">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.5">
+                    <circle cx="11" cy="11" r="7"/>
+                    <path d="M20 20l-3.5-3.5"/>
+                </svg>
+                <input id="mobile-search" type="text" placeholder="Filter this folder…" autocomplete="off">
+            </label>
+        </section>
+
+        <!-- Browse pane -->
+        <section id="browse-pane" class="pane">
+            <div class="pane-head">
+                <div>
+                    <p class="eyebrow">Browse</p>
+                    <h3 id="browse-count">0 items</h3>
+                </div>
+                <button id="btn-clear-mobile-search" class="ghost-btn hidden">✕ Clear</button>
+            </div>
+            <div id="file-list" class="file-grid"></div>
+            <div id="browser-empty" class="empty-state hidden">
+                <h3>No files found</h3>
+                <p>Try a different folder or clear the current filter.</p>
+            </div>
+        </section>
+
+        <!-- Transfers pane -->
+        <section id="transfers-pane" class="pane hidden">
+            <div class="pane-head">
+                <div>
+                    <p class="eyebrow">Transfers</p>
+                    <h3 id="transfer-count-mobile">0 uploads</h3>
+                </div>
+            </div>
+            <div id="mobile-transfer-list" class="transfer-list">
+                <div class="transfer-empty">
+                    <strong>No uploads yet</strong>
+                    <p>Tap the upload button to send files to the desktop.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings pane -->
+        <section id="settings-pane" class="pane hidden">
+            <div class="pane-head">
+                <div>
+                    <p class="eyebrow">Session</p>
+                    <h3>Connection details</h3>
+                </div>
+            </div>
+            <div class="settings-stack">
+                <article class="settings-card glass-panel-inner">
+                    <span class="settings-label">Desktop host</span>
+                    <strong id="settings-host">Not connected</strong>
+                    <p>Your phone talks directly to the LocalBridge server on the local network.</p>
+                </article>
+                <article class="settings-card glass-panel-inner">
+                    <span class="settings-label">Current folder</span>
+                    <strong id="settings-folder">/</strong>
+                    <p>Uploads land in the folder you are currently browsing.</p>
+                </article>
+                <div class="settings-actions">
+                    <button id="btn-rescan" class="primary-btn">Scan New Desktop</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dock -->
+        <nav class="dock glass-panel" aria-label="Primary">
+            <button class="dock-item is-active" data-pane="browse">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                <span>Browse</span>
+                <i class="dock-indicator"></i>
+            </button>
+
+            <button class="dock-item" data-pane="transfers">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="8 17 12 21 16 17"/>
+                    <line x1="12" y1="12" x2="12" y2="21"/>
+                    <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
+                </svg>
+                <span>Transfers</span>
+                <i class="dock-indicator"></i>
+            </button>
+
+            <button class="dock-item" data-pane="settings">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.73.28 1.27.93 1.51 1.62H21a2 2 0 0 1 0 4h-.09c-.29.69-.83 1.34-1.51 1.62z"/>
+                </svg>
+                <span>Session</span>
+                <i class="dock-indicator"></i>
+            </button>
+        </nav>
+    </section>
+
+    <!-- Upload toast -->
+    <div id="upload-toast" class="upload-toast">
+        <span id="upload-toast-label">Uploading…</span>
+        <div class="upload-toast-bar">
+            <div id="upload-toast-fill" class="upload-toast-fill" style="width:0%"></div>
+        </div>
     </div>
 
-    <script src="app.js"></script>
+    <input id="file-input" type="file" multiple>
+    <canvas id="scanner-canvas"></canvas>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
