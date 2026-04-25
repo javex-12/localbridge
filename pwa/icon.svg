@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+    <defs>
+        <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1a90ff" />
+            <stop offset="100%" stop-color="#0545b5" />
+        </linearGradient>
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.4)" />
+            <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+        </radialGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.3" />
+        </filter>
+        <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.8)" />
+            <stop offset="100%" stop-color="rgba(255,255,255,0.1)" />
+        </linearGradient>
+    </defs>
+    <!-- Background -->
+    <rect width="512" height="512" rx="112" fill="url(#bg-grad)" />
+    <!-- Gradient glow overlay for 3D effect -->
+    <rect width="512" height="512" rx="112" fill="url(#glow)" />
+    
+    <!-- Outer glass ring -->
+    <circle cx="256" cy="256" r="160" fill="none" stroke="url(#glass)" stroke-width="8" filter="url(#shadow)" />
+    
+    <!-- Inner design (Bridge/Transfer concept) -->
+    <!-- Left Device / Cloud -->
+    <path d="M160 216h40a16 16 0 0116 16v96" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)" />
+    <!-- Right Device / Cloud -->
+    <path d="M352 296h-40a16 16 0 01-16-16v-96" fill="none" stroke="#a8d4ff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)" />
+    
+    <!-- Bridge connection -->
+    <path d="M216 256h80" fill="none" stroke="#fff" stroke-width="32" stroke-linecap="round" stroke-dasharray="0 48" stroke-dashoffset="12" />
+    
+    <!-- Dynamic glowing core -->
+    <circle cx="256" cy="256" r="32" fill="#fff" filter="url(#shadow)" />
+    <!-- Highlights -->
+    <path d="M64 160C120 80 200 48 300 48" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="16" stroke-linecap="round" />
+</svg>

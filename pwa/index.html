@@ -207,72 +207,95 @@
     }
 
     .connect-body h1 {
-        font-size: 1.7rem;
-        font-weight: 800;
-        letter-spacing: -0.04em;
-        background: linear-gradient(135deg, #fff 30%, var(--acc-text));
+        font-size: 2.2rem;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        background: linear-gradient(135deg, #ffffff 10%, #a0cbf7);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
     }
 
     .lead {
-        font-size: 0.85rem;
-        line-height: 1.65;
+        font-size: 0.94rem;
+        line-height: 1.6;
         color: var(--text-sec);
-        margin-bottom: 24px;
+        margin-bottom: 30px;
     }
 
     /* scanner */
     .scanner-shell {
         position: relative;
         width: 100%;
+        max-width: 340px;
         aspect-ratio: 1;
-        border-radius: var(--r-lg);
+        margin: 0 auto 24px;
+        border-radius: var(--r-xl);
         overflow: hidden;
-        background: #000;
-        margin-bottom: 18px;
-        border: 1px solid var(--border);
+        background: radial-gradient(circle, rgba(10,132,255,0.1), transparent 70%), #000;
+        box-shadow: 0 0 0 2px rgba(255,255,255,0.06), 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .scanner-shell::before {
+        content: '';
+        position: absolute; inset: 0;
+        border-radius: 50%;
+        border: 2px solid rgba(10,132,255,0.3);
+        transform: scale(0.1);
+        opacity: 0;
+        animation: radarPulse 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+        z-index: 10;
+        pointer-events: none;
+    }
+    @keyframes radarPulse {
+        0% { transform: scale(0.1); opacity: 0; }
+        50% { opacity: 1; }
+        100% { transform: scale(2.5); opacity: 0; }
     }
     #scanner-video {
         width: 100%; height: 100%;
         object-fit: cover;
         display: block;
+        opacity: 0.8;
     }
     .scanner-overlay {
         position: absolute; inset: 0;
         background: rgba(0,0,0,0.40);
+        z-index: 5;
     }
     .scanner-line {
         position: absolute;
-        left: 15%; right: 15%;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--accent), transparent);
-        box-shadow: 0 0 12px var(--acc-glow);
-        animation: scanLine 2s ease-in-out infinite;
+        left: 0; right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, #0a84ff, #80e4ff, #0a84ff, transparent);
+        box-shadow: 0 0 20px #0a84ff, 0 0 40px #80e4ff;
+        animation: scanLine 2.5s ease-in-out infinite;
+        z-index: 20;
     }
     @keyframes scanLine {
-        0%   { top: 15%; opacity: 0.5; }
-        50%  { opacity: 1; }
-        100% { top: 85%; opacity: 0.5; }
+        0%   { top: 5%; opacity: 0; }
+        15%  { opacity: 1; }
+        85%  { opacity: 1; }
+        100% { top: 95%; opacity: 0; }
     }
     .scanner-corners {
         position: absolute;
-        inset: 14%;
+        inset: 15%;
         pointer-events: none;
+        z-index: 20;
     }
     .scanner-corners span {
         position: absolute;
-        width: 22px; height: 22px;
-        border-color: var(--accent);
+        width: 32px; height: 32px;
+        border-color: #fff;
         border-style: solid;
         border-width: 0;
+        box-shadow: 0 0 10px rgba(10,132,255,0.5);
     }
-    .scanner-corners span:nth-child(1) { top:0; left:0;   border-top-width:3px; border-left-width:3px;   border-radius:4px 0 0 0; }
-    .scanner-corners span:nth-child(2) { top:0; right:0;  border-top-width:3px; border-right-width:3px;  border-radius:0 4px 0 0; }
-    .scanner-corners span:nth-child(3) { bottom:0; left:0;  border-bottom-width:3px; border-left-width:3px;  border-radius:0 0 0 4px; }
-    .scanner-corners span:nth-child(4) { bottom:0; right:0; border-bottom-width:3px; border-right-width:3px; border-radius:0 0 4px 0; }
+    .scanner-corners span:nth-child(1) { top:0; left:0;   border-top-width:4px; border-left-width:4px;   border-radius:10px 0 0 0; }
+    .scanner-corners span:nth-child(2) { top:0; right:0;  border-top-width:4px; border-right-width:4px;  border-radius:0 10px 0 0; }
+    .scanner-corners span:nth-child(3) { bottom:0; left:0;  border-bottom-width:4px; border-left-width:4px;  border-radius:0 0 0 10px; }
+    .scanner-corners span:nth-child(4) { bottom:0; right:0; border-bottom-width:4px; border-right-width:4px; border-radius:0 0 10px 0; }
 
     /* setup pills */
     .setup-pills {

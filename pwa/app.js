@@ -67,6 +67,13 @@ function checkSetup() {
     pillNetwork.textContent = online ? '✓ Network ready' : '⚡ Offline ready';
     pillNetwork.classList.toggle('ok', online);
 
+    // If device doesn't even have mediaDevices (usually because of HTTP instead of HTTPS on mobile)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        pillCamera.textContent = '✗ Require HTTPS for Camera';
+        pillCamera.classList.add('fail');
+        return;
+    }
+
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
             const hasCamera = devices.some((d) => d.kind === 'videoinput');
@@ -74,13 +81,19 @@ function checkSetup() {
             pillCamera.classList.toggle('ok', hasCamera);
             pillCamera.classList.toggle('fail', !hasCamera);
         })
-        .catch(() => {
+        .catch((err) => {
+            console.warn('Enum err:', err);
             pillCamera.textContent = '· Camera pending';
         });
 }
 
 /* ── QR Scanner ───────────────────────────────────────────── */
 async function startScan() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Camera access is blocked because you are not using HTTPS. Please access LocalBridge via HTTPS (like your Vercel URL) on your phone.');
+        return;
+    }
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -93,12 +106,15 @@ async function startScan() {
         btnScanStart.disabled = true;
         pillCamera.textContent = '● Scanning QR';
         pillCamera.classList.add('ok');
+        pillCamera.classList.remove('fail');
 
         clearInterval(scanTimer);
         scanTimer = setInterval(readQrFrame, 200);
     } catch (err) {
-        console.error(err);
-        alert('Camera permission is required to pair with the desktop app.');
+        console.error('Scan err:', err);
+        alert(`Camera error: ${err.name} - ${err.message}. Please allow camera permissions.`);
+        pillCamera.textContent = '✗ Permission denied';
+        pillCamera.classList.add('fail');
         btnScanStart.textContent = 'Start Camera Scan';
         btnScanStart.disabled = false;
     }
