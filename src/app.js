@@ -406,5 +406,15 @@ clearSearchBtn.addEventListener('click', () => {
     triggerSearch();
 });
 
+// Modal UI logic
+const btnShowQr = document.getElementById('btn-show-qr');
+const btnCloseQr = document.getElementById('btn-close-qr');
+const qrModal = document.getElementById('qr-modal');
+const modalBackdrop = document.querySelector('.modal-backdrop');
+
+btnShowQr.addEventListener('click', () => qrModal.classList.remove('hidden'));
+btnCloseQr.addEventListener('click', () => qrModal.classList.add('hidden'));
+modalBackdrop.addEventListener('click', () => qrModal.classList.add('hidden'));
+
 setView('grid');
 init();

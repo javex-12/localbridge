@@ -947,3 +947,99 @@ input { border: none; outline: none; background: none; }
     animation: shimmer 1.5s linear infinite;
     border-radius: 8px;
 }
+
+/* ─── Modals ─────────────────────────────────────────────── */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+.modal.hidden { display: none !important; }
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    border-radius: var(--radius-2xl);
+    display: flex;
+    flex-direction: column;
+    animation: slideUpFade 0.3s var(--ease-spring) forwards;
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border: 1px solid var(--border);
+    transition: all 0.15s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255,95,87,0.15);
+    color: #ff5f57;
+    border-color: rgba(255,95,87,0.3);
+    transform: scale(1.05);
+}
+
+.modal-header {
+    padding: 32px 32px 16px;
+    text-align: center;
+}
+.modal-header h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+}
+.modal-header p {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.modal-body {
+    padding: 16px 32px 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.scanner-card {
+    background: #fff;
+    padding: 16px;
+    border-radius: 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    pointer-events: none;
+}
+
+@keyframes slideUpFade {
+    0% { transform: translateY(30px) scale(0.96); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}

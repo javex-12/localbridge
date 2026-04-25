@@ -38,6 +38,7 @@ const uploadToastLabel     = document.getElementById('upload-toast-label');
 const uploadToastFill      = document.getElementById('upload-toast-fill');
 const dockItems            = document.querySelectorAll('.dock-item');
 const panes = {
+    home:      document.getElementById('home-pane'),
     browse:    document.getElementById('browse-pane'),
     transfers: document.getElementById('transfers-pane'),
     settings:  document.getElementById('settings-pane'),
@@ -50,14 +51,51 @@ function init() {
     }
 
     checkSetup();
+    setPane('home');
 
-    // Entrance animation
-    gsap.from('#connect-window', {
-        duration: 0.9,
-        y: 48,
-        opacity: 0,
-        scale: 0.96,
-        ease: 'expo.out',
+    // UI Bindings for the Dashboard
+    const btnOpenScanner = document.getElementById('btn-open-scanner');
+    btnOpenScanner.addEventListener('click', showScannerOverlay);
+
+    const btnCloseScanner = document.querySelector('.light.close');
+    btnCloseScanner.addEventListener('click', hideScannerOverlay);
+
+    const categoryCards = document.querySelectorAll('.category-card');
+    categoryCards.forEach(card => {
+        card.addEventListener('click', () => {
+            if (!token || !laptopIp) {
+                showScannerOverlay();
+                alert('Please connect to the Desktop app first before sending files.');
+                return;
+            }
+            const type = card.getAttribute('data-pick');
+            if (type === '*') {
+                fileInput.removeAttribute('accept');
+            } else {
+                fileInput.setAttribute('accept', type);
+            }
+            // Temporarily intercept the standard flow to ensure it uploads to the correct folder
+            document.getElementById('file-input').click();
+        });
+    });
+}
+
+function showScannerOverlay() {
+    connectScreen.classList.remove('hidden');
+    gsap.fromTo('#connect-window', 
+        { y: '100%' },
+        { y: 0, duration: 0.4, ease: 'power3.out' }
+    );
+}
+
+function hideScannerOverlay() {
+    gsap.to('#connect-window', {
+        y: '100%',
+        duration: 0.3,
+        ease: 'power3.in',
+        onComplete: () => {
+             connectScreen.classList.add('hidden');
+        }
     });
 }
 
@@ -148,29 +186,20 @@ async function handleHandshake(payload) {
     laptopIp = payload.ip;
     token    = payload.token;
 
-    sessionLabel.textContent = `● Connected to ${laptopIp}`;
-    settingsHost.textContent = laptopIp;
+    document.getElementById('dashboard-connect').innerHTML = `
+        <div>
+            <h4 style="font-size:1.0rem; font-weight:800; margin-bottom:4px; color:var(--green-text);">Connected to ${laptopIp}</h4>
+            <p style="font-size:0.8rem; color:var(--text-sec); line-height:1.4;">Ready to send files instantly.</p>
+        </div>
+        <div style="width:48px; height:48px; border-radius:50%; background:var(--green-soft); color:var(--green-text); display:grid; place-items:center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+    `;
 
     stopScanner();
 
-    // Animate out connect screen, animate in browser
-    gsap.to('#connect-window', {
-        duration: 0.38,
-        opacity: 0,
-        y: -28,
-        scale: 0.96,
-        ease: 'power2.in',
-        onComplete: () => {
-            connectScreen.classList.add('hidden');
-            browserScreen.classList.remove('hidden');
-            gsap.from(browserScreen, {
-                duration: 0.6,
-                opacity: 0,
-                y: 20,
-                ease: 'expo.out',
-            });
-        },
-    });
+    // Animate out connect screen overlay
+    hideScannerOverlay();
 
     setPane('browse');
     await loadRemoteFiles('/');
