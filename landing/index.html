@@ -3,441 +3,715 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalBridge | Offline File Bridge</title>
+    <title>LocalBridge — Premium Local File Transfer</title>
+    <meta name="description" content="LocalBridge pairs your desktop with any phone on the local network. No cloud, no account, no app store. Scan a QR, browse folders, and transfer files at full LAN speed.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
     <script src="pwa/gsap.js"></script>
     <style>
-        :root {
-            --bg: #070b14;
-            --panel: rgba(16, 24, 39, 0.74);
-            --panel-soft: rgba(255, 255, 255, 0.06);
-            --border: rgba(255, 255, 255, 0.12);
-            --text-primary: #f6f8fc;
-            --text-secondary: #aab6cd;
-            --text-muted: #7f8ba4;
-            --accent: #0a84ff;
-            --accent-soft: rgba(10, 132, 255, 0.18);
-            --green: #32d74b;
-            --yellow: #ffd60a;
-            --red: #ff5f57;
-            --shadow: 0 30px 70px rgba(3, 8, 20, 0.42);
-        }
+    /* ─── Tokens ──────────────────────────────────────────── */
+    :root {
+        --bg:           #06080f;
+        --surface:      rgba(255,255,255,0.055);
+        --surface-hov:  rgba(255,255,255,0.085);
+        --border:       rgba(255,255,255,0.09);
+        --border-str:   rgba(255,255,255,0.16);
+        --text-pri:     #eef2ff;
+        --text-sec:     #8a9ab8;
+        --text-mut:     #4e5d7a;
+        --accent:       #0a84ff;
+        --accent-glow:  rgba(10,132,255,0.30);
+        --accent-soft:  rgba(10,132,255,0.13);
+        --accent-text:  #a8d4ff;
+        --green:        #30d158;
+        --yellow:       #ffd60a;
+        --red:          #ff5f57;
+        --shadow-xl:    0 36px 80px rgba(0,0,0,0.52);
+        --ease-spring:  cubic-bezier(0.34,1.56,0.64,1);
+        --ease-out:     cubic-bezier(0.22,1,0.36,1);
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            font-family: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--text-primary);
-            background:
-                radial-gradient(circle at top left, rgba(126, 113, 255, 0.22), transparent 24%),
-                radial-gradient(circle at top right, rgba(10, 132, 255, 0.18), transparent 18%),
-                linear-gradient(180deg, #151b2d 0%, #0a0d15 46%, #06080f 100%);
-            overflow-x: hidden;
-        }
+    html { scroll-behavior: smooth; }
 
-        a,
-        button {
-            color: inherit;
-            font: inherit;
-        }
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--text-pri);
+        background: var(--bg);
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
 
-        button {
-            border: none;
-            background: none;
-        }
+    a, button { font: inherit; color: inherit; }
+    button { border: none; background: none; cursor: pointer; }
+    a { text-decoration: none; }
+    svg { display: block; }
 
-        .mesh {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(90px);
-            pointer-events: none;
-            opacity: 0.5;
-        }
+    /* ─── Ambient ─────────────────────────────────────────── */
+    .orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(110px);
+        pointer-events: none;
+        animation: orbDrift 22s ease-in-out infinite alternate;
+    }
 
-        .mesh-one {
-            width: 30rem;
-            height: 30rem;
-            top: -12rem;
-            left: -12rem;
-            background: rgba(129, 118, 255, 0.52);
-        }
+    .orb-1 {
+        width: 600px; height: 600px;
+        top: -200px; left: -180px;
+        background: radial-gradient(circle, rgba(80,60,255,0.50) 0%, rgba(30,60,255,0.14) 60%);
+    }
 
-        .mesh-two {
-            width: 34rem;
-            height: 34rem;
-            right: -14rem;
-            bottom: -16rem;
-            background: rgba(10, 132, 255, 0.26);
-        }
+    .orb-2 {
+        width: 500px; height: 500px;
+        top: -100px; right: -150px;
+        background: radial-gradient(circle, rgba(10,132,255,0.36) 0%, transparent 65%);
+        animation-delay: -9s;
+        animation-duration: 28s;
+    }
 
-        .container {
-            width: min(1200px, calc(100% - 40px));
-            margin: 0 auto;
-        }
+    .orb-3 {
+        width: 460px; height: 460px;
+        bottom: -160px; right: 10%;
+        background: radial-gradient(circle, rgba(0,210,180,0.18) 0%, transparent 65%);
+        animation-delay: -16s;
+        animation-duration: 32s;
+    }
 
-        .glass {
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
-            border: 1px solid var(--border);
-            backdrop-filter: blur(30px) saturate(170%);
-            -webkit-backdrop-filter: blur(30px) saturate(170%);
-            box-shadow: var(--shadow);
-        }
+    @keyframes orbDrift {
+        0%   { transform: translate(0,0) scale(1); }
+        50%  { transform: translate(30px,-22px) scale(1.06); }
+        100% { transform: translate(-18px,28px) scale(0.94); }
+    }
 
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            backdrop-filter: blur(18px);
-            background: rgba(7, 11, 20, 0.45);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
+    /* ─── Shared layout ───────────────────────────────────── */
+    .container {
+        width: min(1200px, 100% - 40px);
+        margin: 0 auto;
+    }
 
-        .nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            min-height: 88px;
-        }
+    .glass {
+        background: linear-gradient(135deg, rgba(255,255,255,0.090), rgba(255,255,255,0.038));
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255,255,255,0.08);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+    }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+    /* ─── Header / Nav ────────────────────────────────────── */
+    header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        backdrop-filter: blur(32px) saturate(160%);
+        background: rgba(6,8,15,0.55);
+        transition: background 0.3s ease;
+    }
 
-        .traffic-lights {
-            display: flex;
-            gap: 8px;
-        }
+    .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        height: 72px;
+    }
 
-        .light {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
 
-        .light.close { background: var(--red); }
-        .light.minimize { background: var(--yellow); }
-        .light.expand { background: var(--green); }
+    .traffic-lights { display: flex; gap: 7px; }
 
-        .brand-copy span,
-        .eyebrow {
-            display: inline-block;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-            font-size: 0.72rem;
-            font-weight: 700;
-        }
+    .light {
+        width: 12px; height: 12px;
+        border-radius: 50%;
+        position: relative;
+    }
 
-        .brand-copy strong {
-            display: block;
-            margin-top: 4px;
-            font-size: 1.05rem;
-            letter-spacing: -0.03em;
-        }
+    .light::after {
+        content: '';
+        position: absolute;
+        inset: 2px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.30);
+    }
 
-        .nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    .light.close    { background: var(--red);    box-shadow: 0 0 8px rgba(255,95,87,0.45); }
+    .light.minimize { background: var(--yellow); box-shadow: 0 0 8px rgba(255,214,10,0.35); }
+    .light.expand   { background: var(--green);  box-shadow: 0 0 8px rgba(48,209,88,0.35); }
 
-        .nav-btn,
-        .hero-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 14px 18px;
-            border-radius: 16px;
-            text-decoration: none;
-            cursor: pointer;
-            transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
-        }
+    .brand-info { display: grid; }
 
-        .nav-btn:hover,
-        .hero-btn:hover,
-        .feature-card:hover,
-        .preview-card:hover {
-            transform: translateY(-2px);
-        }
+    .brand-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--text-mut);
+    }
 
-        .nav-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            font-weight: 700;
-        }
+    .brand-name {
+        font-size: 1.0rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+    }
 
-        main {
-            padding: 72px 0 80px;
-        }
+    .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
 
-        .hero {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 26px;
-            align-items: stretch;
-        }
+    .nav-link {
+        padding: 9px 16px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-sec);
+        transition: all 0.15s ease;
+    }
 
-        .hero-copy,
-        .hero-preview {
-            border-radius: 34px;
-            padding: 30px;
-        }
+    .nav-link:hover {
+        color: var(--text-pri);
+        background: var(--surface-hov);
+    }
 
-        .hero-copy h1 {
-            margin-top: 16px;
-            font-size: clamp(3rem, 6vw, 5.5rem);
-            line-height: 0.95;
-            letter-spacing: -0.06em;
-        }
+    .nav-cta {
+        padding: 9px 18px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #1a90ff, #0a84ff);
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(10,132,255,0.35);
+        transition: all 0.15s var(--ease-spring);
+    }
 
-        .hero-copy p {
-            margin-top: 20px;
-            max-width: 44rem;
-            color: var(--text-secondary);
-            font-size: 1.08rem;
-            line-height: 1.65;
-        }
+    .nav-cta:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 28px rgba(10,132,255,0.50);
+    }
 
-        .hero-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            margin-top: 28px;
-        }
+    /* ─── Hero ────────────────────────────────────────────── */
+    .hero {
+        padding: 80px 0 60px;
+    }
 
-        .hero-btn-primary {
-            background: linear-gradient(180deg, #1890ff 0%, #0a84ff 100%);
-            box-shadow: 0 20px 34px rgba(10, 132, 255, 0.28);
-            font-weight: 800;
-        }
+    .hero-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        align-items: stretch;
+    }
 
-        .hero-btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            font-weight: 700;
-        }
+    /* left copy panel */
+    .hero-copy {
+        padding: 40px;
+        border-radius: 36px;
+        display: flex;
+        flex-direction: column;
+    }
 
-        .hero-meta {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 14px;
-            margin-top: 28px;
-        }
+    .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(10,132,255,0.22);
+        color: var(--accent-text);
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.10em;
+        text-transform: uppercase;
+        width: fit-content;
+        margin-bottom: 22px;
+    }
 
-        .meta-card {
-            padding: 18px;
-            border-radius: 22px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
+    .hero-eyebrow::before {
+        content: '';
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse 1.8s ease-in-out infinite;
+    }
 
-        .meta-card strong {
-            display: block;
-            font-size: 1.2rem;
-            margin-top: 8px;
-            letter-spacing: -0.03em;
-        }
+    @keyframes pulse {
+        0%,100% { opacity:1; transform:scale(1); }
+        50%      { opacity:0.4; transform:scale(0.7); }
+    }
 
-        .meta-card p {
-            margin-top: 8px;
-            font-size: 0.9rem;
-        }
+    .hero-copy h1 {
+        font-size: clamp(2.4rem, 5vw, 4rem);
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        line-height: 1.0;
+        background: linear-gradient(135deg, #fff 30%, #aac8f0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 20px;
+    }
 
-        .preview-stack {
-            display: grid;
-            gap: 16px;
-            height: 100%;
-        }
+    .hero-copy p {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: var(--text-sec);
+        max-width: 42rem;
+        margin-bottom: 32px;
+    }
 
-        .preview-card {
-            border-radius: 28px;
-            padding: 20px;
-            background: rgba(7, 11, 20, 0.34);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: transform 180ms ease, border-color 180ms ease;
-        }
+    .hero-btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 36px;
+    }
 
-        .preview-window {
-            aspect-ratio: 1.15;
-            margin-top: 16px;
-            border-radius: 24px;
-            overflow: hidden;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            position: relative;
-        }
+    .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 26px;
+        border-radius: 16px;
+        font-size: 0.94rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #1a90ff 0%, #0a84ff 100%);
+        color: #fff;
+        box-shadow: 0 10px 30px rgba(10,132,255,0.38), inset 0 1px 0 rgba(255,255,255,0.22);
+        transition: all 0.15s var(--ease-spring);
+        letter-spacing: -0.01em;
+    }
 
-        .preview-window::before {
-            content: "";
-            position: absolute;
-            inset: 16px;
-            border-radius: 18px;
-            background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 50%),
-                rgba(7, 11, 20, 0.6);
-        }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 40px rgba(10,132,255,0.52);
+    }
 
-        .preview-shell {
-            position: absolute;
-            inset: 24px;
-            display: grid;
-            gap: 12px;
-        }
+    .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 26px;
+        border-radius: 16px;
+        font-size: 0.94rem;
+        font-weight: 700;
+        background: var(--surface);
+        border: 1px solid var(--border-str);
+        transition: all 0.15s var(--ease-spring);
+    }
 
-        .preview-toolbar,
-        .preview-dock {
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        background: var(--surface-hov);
+        border-color: rgba(255,255,255,0.24);
+        box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+    }
 
-        .preview-toolbar {
-            height: 52px;
-        }
+    /* stat grid */
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: auto;
+    }
 
-        .preview-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            flex: 1;
-        }
+    .stat-card {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+    }
 
-        .preview-column,
-        .preview-cardlet {
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
+    .stat-card .eyebrow {
+        display: block;
+        font-size: 0.62rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-mut);
+        margin-bottom: 6px;
+    }
 
-        .preview-column {
-            min-height: 0;
-        }
+    .stat-card strong {
+        display: block;
+        font-size: 0.96rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
 
-        .preview-cardlet {
-            height: 84px;
-        }
+    .stat-card p {
+        margin-top: 5px;
+        font-size: 0.76rem;
+        line-height: 1.5;
+        color: var(--text-sec);
+    }
 
-        .preview-dock {
-            height: 70px;
-        }
+    /* right preview panel */
+    .hero-preview {
+        padding: 28px;
+        border-radius: 36px;
+        display: grid;
+        grid-template-rows: 1fr auto;
+        gap: 16px;
+    }
 
-        .section {
-            margin-top: 26px;
-            padding: 28px;
-            border-radius: 34px;
-        }
+    .preview-app {
+        border-radius: 26px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: rgba(10,14,22,0.60);
+        position: relative;
+    }
 
-        .section-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 20px;
-        }
+    .preview-titlebar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255,255,255,0.03);
+    }
 
-        .section-head h2 {
-            margin-top: 8px;
-            font-size: clamp(2rem, 3.8vw, 3rem);
-            letter-spacing: -0.05em;
-        }
+    .preview-titlebar-title {
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: var(--text-sec);
+    }
 
-        .section-head p {
-            max-width: 34rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
+    .preview-body {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        min-height: 240px;
+    }
 
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 18px;
-            margin-top: 24px;
-        }
+    .preview-sidebar {
+        border-right: 1px solid var(--border);
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+        align-content: start;
+    }
 
-        .feature-card {
-            padding: 22px;
-            border-radius: 24px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: transform 180ms ease, border-color 180ms ease;
-        }
+    .preview-block {
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border);
+    }
 
-        .feature-card h3 {
-            margin-top: 16px;
-            font-size: 1.2rem;
-            letter-spacing: -0.03em;
-        }
+    .preview-block.accent {
+        background: rgba(10,132,255,0.18);
+        border-color: rgba(10,132,255,0.25);
+    }
 
-        .feature-card p {
-            margin-top: 10px;
-            color: var(--text-secondary);
-            line-height: 1.55;
-        }
+    .preview-main { padding: 14px; }
 
-        .feature-icon {
-            display: inline-grid;
-            place-items: center;
-            width: 54px;
-            height: 54px;
-            border-radius: 16px;
-            background: var(--accent-soft);
-            color: #d7ecff;
-            font-size: 1.35rem;
-            font-weight: 800;
-        }
+    .preview-toolbar-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
 
-        footer {
-            padding: 26px 0 12px;
-            color: var(--text-muted);
-            text-align: center;
-        }
+    .preview-tool {
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--border);
+    }
 
-        @media (max-width: 980px) {
-            .hero,
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
+    .preview-grid-files {
+        display: grid;
+        grid-template-columns: repeat(3,1fr);
+        gap: 8px;
+    }
 
-            .hero-meta {
-                grid-template-columns: 1fr;
-            }
-        }
+    .preview-file {
+        aspect-ratio: 1;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
 
-        @media (max-width: 680px) {
-            .container {
-                width: min(100% - 28px, 1200px);
-            }
+    .preview-file::after {
+        content: '';
+        position: absolute;
+        bottom: 6px;
+        left: 6px;
+        right: 6px;
+        height: 5px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.10);
+    }
 
-            .nav {
-                flex-direction: column;
-                align-items: stretch;
-                justify-content: center;
-                padding: 16px 0;
-            }
+    .preview-file.f-blue::before   { content:''; position:absolute; inset: 10px; border-radius:6px; background: rgba(10,132,255,0.22); }
+    .preview-file.f-purple::before { content:''; position:absolute; inset: 10px; border-radius:6px; background: rgba(150,50,255,0.22); }
+    .preview-file.f-green::before  { content:''; position:absolute; inset: 10px; border-radius:6px; background: rgba(48,209,88,0.22); }
 
-            .nav-actions,
-            .hero-actions {
-                flex-direction: column;
-            }
+    /* mobile pill preview */
+    .preview-mobile {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
 
-            .hero-copy,
-            .hero-preview,
-            .section {
-                padding: 22px;
-            }
-        }
+    .mobile-card {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        transition: all 0.2s var(--ease-spring);
+    }
+
+    .mobile-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--border-str);
+    }
+
+    .mobile-card p {
+        margin-top: 8px;
+        font-size: 0.78rem;
+        line-height: 1.55;
+        color: var(--text-sec);
+    }
+
+    .mobile-card-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 36px; height: 36px;
+        border-radius: 11px;
+        background: var(--accent-soft);
+        color: var(--accent-text);
+    }
+
+    /* ─── Features section ────────────────────────────────── */
+    .features {
+        padding: 0 0 80px;
+    }
+
+    .section-label {
+        display: inline-block;
+        font-size: 0.66rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--accent-text);
+        background: var(--accent-soft);
+        border: 1px solid rgba(10,132,255,0.18);
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin-bottom: 14px;
+    }
+
+    .features-head {
+        text-align: center;
+        margin-bottom: 44px;
+    }
+
+    .features-head h2 {
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        margin-bottom: 14px;
+        background: linear-gradient(135deg, #fff, #aab8cc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .features-head p {
+        color: var(--text-sec);
+        font-size: 1.0rem;
+        max-width: 40rem;
+        margin: 0 auto;
+        line-height: 1.7;
+    }
+
+    .features-panel {
+        padding: 36px 40px;
+        border-radius: 36px;
+    }
+
+    .features-inner {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+    }
+
+    .feature-card {
+        padding: 28px;
+        border-radius: 26px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--border);
+        transition: all 0.2s var(--ease-spring);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .feature-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(circle at top left, rgba(10,132,255,0.06), transparent 60%);
+        pointer-events: none;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-str);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.38);
+    }
+
+    .feature-icon {
+        display: inline-grid;
+        place-items: center;
+        width: 52px; height: 52px;
+        border-radius: 16px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(10,132,255,0.20);
+        color: var(--accent-text);
+        margin-bottom: 18px;
+    }
+
+    .feature-icon svg { width: 22px; height: 22px; }
+
+    .feature-card h3 {
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-bottom: 10px;
+    }
+
+    .feature-card p {
+        font-size: 0.84rem;
+        line-height: 1.65;
+        color: var(--text-sec);
+    }
+
+    /* numbered badge */
+    .feature-card .badge {
+        position: absolute;
+        top: 20px; right: 20px;
+        font-size: 0.70rem;
+        font-weight: 800;
+        color: var(--text-mut);
+        letter-spacing: 0.04em;
+    }
+
+    /* ─── CTA strip ───────────────────────────────────────── */
+    .cta-strip {
+        padding: 0 0 80px;
+    }
+
+    .cta-inner {
+        padding: 48px 52px;
+        border-radius: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+        background: linear-gradient(135deg, rgba(10,132,255,0.14), rgba(100,60,255,0.10));
+        border: 1px solid rgba(10,132,255,0.20);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-inner::before {
+        content: '';
+        position: absolute;
+        top: -80px; right: -80px;
+        width: 280px; height: 280px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(10,132,255,0.22), transparent 70%);
+        pointer-events: none;
+    }
+
+    .cta-copy h2 {
+        font-size: 1.8rem;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        margin-bottom: 10px;
+    }
+
+    .cta-copy p {
+        font-size: 0.92rem;
+        color: var(--text-sec);
+        line-height: 1.65;
+        max-width: 32rem;
+    }
+
+    .cta-btns {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+
+    /* ─── Footer ──────────────────────────────────────────── */
+    footer {
+        padding: 22px 0;
+        border-top: 1px solid var(--border);
+        color: var(--text-mut);
+    }
+
+    .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        font-size: 0.78rem;
+    }
+
+    .footer-links { display: flex; gap: 18px; }
+    .footer-links a { color: var(--text-sec); transition: color 0.14s; }
+    .footer-links a:hover { color: var(--text-pri); }
+
+    /* ─── Responsive ──────────────────────────────────────── */
+    @media (max-width: 1020px) {
+        .hero-inner, .preview-body { grid-template-columns: 1fr; }
+        .preview-body { grid-template-columns: 130px 1fr; }
+        .features-inner { grid-template-columns: 1fr 1fr; }
+        .cta-inner { flex-direction: column; text-align: center; }
+        .cta-btns { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    }
+
+    @media (max-width: 680px) {
+        .container { width: min(100% - 28px, 1200px); }
+        .nav { height: 60px; }
+        .nav-links .nav-link:not(.nav-cta) { display: none; }
+        .hero { padding: 44px 0 40px; }
+        .hero-copy { padding: 26px; }
+        .hero-copy h1 { font-size: 2rem; }
+        .hero-stats { grid-template-columns: 1fr; }
+        .features-inner { grid-template-columns: 1fr; }
+        .features-panel { padding: 22px; }
+        .cta-inner { padding: 28px 24px; }
+        .preview-mobile { grid-template-columns: 1fr; }
+        .hero-preview { display: none; }
+        .footer-inner { flex-direction: column; text-align: center; }
+    }
+
+    /* ─── Reveal utility ──────────────────────────────────── */
+    .reveal { opacity: 0; transform: translateY(20px); }
     </style>
 </head>
 <body>
-    <div class="mesh mesh-one"></div>
-    <div class="mesh mesh-two"></div>
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+    <div class="orb orb-3" aria-hidden="true"></div>
 
+    <!-- ── Header ── -->
     <header>
         <div class="container nav">
             <div class="brand">
@@ -446,130 +720,269 @@
                     <span class="light minimize"></span>
                     <span class="light expand"></span>
                 </div>
-                <div class="brand-copy">
-                    <span>Local Transfer Suite</span>
-                    <strong>LocalBridge</strong>
+                <div class="brand-info">
+                    <span class="brand-label">Local Transfer Suite</span>
+                    <span class="brand-name">LocalBridge</span>
                 </div>
             </div>
 
-            <div class="nav-actions">
-                <a class="nav-btn" href="https://github.com/javex-12/localbridge">GitHub</a>
-                <a class="nav-btn" href="https://github.com/javex-12/localbridge/releases">Desktop Build</a>
-            </div>
+            <nav class="nav-links" aria-label="Primary">
+                <a class="nav-link" href="https://github.com/javex-12/localbridge">GitHub</a>
+                <a class="nav-link" href="https://github.com/javex-12/localbridge/releases">Releases</a>
+                <a class="nav-cta" href="https://github.com/javex-12/localbridge/releases">Download Desktop</a>
+            </nav>
         </div>
     </header>
 
-    <main class="container">
+    <!-- ── Hero ── -->
+    <main>
         <section class="hero">
-            <div class="hero-copy glass">
-                <span class="eyebrow">Private, Local, Fast</span>
-                <h1>Mac-style local transfer for desktop and phone.</h1>
-                <p>LocalBridge pairs a desktop file browser with a mobile PWA so you can move through folders, fetch files, and upload back to the machine without cloud services, account friction, or app-store overhead.</p>
+            <div class="container">
+                <div class="hero-inner">
 
-                <div class="hero-actions">
-                    <a href="https://github.com/javex-12/localbridge/releases" class="hero-btn hero-btn-primary">Download Desktop App</a>
-                    <button id="install-btn" class="hero-btn hero-btn-secondary">Install Mobile PWA</button>
-                </div>
+                    <!-- Left: copy -->
+                    <div class="hero-copy glass reveal" id="hero-copy">
+                        <div class="hero-eyebrow">Private · Local · Instant</div>
 
-                <div class="hero-meta">
-                    <article class="meta-card">
-                        <span class="eyebrow">Transport</span>
-                        <strong>Local network only</strong>
-                        <p>No relay server between your laptop and phone.</p>
-                    </article>
-                    <article class="meta-card">
-                        <span class="eyebrow">Desktop</span>
-                        <strong>Tauri + Rust core</strong>
-                        <p>Native desktop shell with direct filesystem access.</p>
-                    </article>
-                    <article class="meta-card">
-                        <span class="eyebrow">Phone</span>
-                        <strong>PWA install flow</strong>
-                        <p>Browse and upload from a home-screen app.</p>
-                    </article>
-                </div>
-            </div>
+                        <h1>Transfer files at full LAN speed.</h1>
 
-            <aside class="hero-preview glass">
-                <div class="preview-stack">
-                    <article class="preview-card">
-                        <span class="eyebrow">Desktop View</span>
-                        <div class="preview-window">
-                            <div class="preview-shell">
-                                <div class="preview-toolbar"></div>
-                                <div class="preview-grid">
-                                    <div class="preview-column"></div>
-                                    <div style="display:grid; gap:12px;">
-                                        <div class="preview-cardlet"></div>
-                                        <div class="preview-cardlet"></div>
-                                        <div class="preview-cardlet"></div>
-                                    </div>
-                                </div>
-                                <div class="preview-dock"></div>
+                        <p>LocalBridge puts a polished file browser on your desktop and a zero-install PWA on your phone. Scan a QR, browse any folder, upload files back — zero cloud relay, zero friction.</p>
+
+                        <div class="hero-btns">
+                            <a href="https://github.com/javex-12/localbridge/releases" class="btn-primary">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Download Desktop App
+                            </a>
+                            <button id="install-btn" class="btn-secondary">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="2" width="14" height="20" rx="2"/>
+                                    <line x1="12" y1="18" x2="12" y2="18" stroke-width="3" stroke-linecap="round"/>
+                                </svg>
+                                Install Phone App
+                            </button>
+                        </div>
+
+                        <div class="hero-stats">
+                            <div class="stat-card">
+                                <span class="eyebrow">Transport</span>
+                                <strong>Local LAN only</strong>
+                                <p>No relay server between your devices.</p>
+                            </div>
+                            <div class="stat-card">
+                                <span class="eyebrow">Desktop</span>
+                                <strong>Tauri + Rust</strong>
+                                <p>Native shell with direct filesystem access.</p>
+                            </div>
+                            <div class="stat-card">
+                                <span class="eyebrow">Phone</span>
+                                <strong>Offline PWA</strong>
+                                <p>Add to home screen. Works without internet.</p>
                             </div>
                         </div>
-                    </article>
-                    <article class="preview-card">
-                        <span class="eyebrow">Mobile View</span>
-                        <p style="margin-top: 12px; color: var(--text-secondary); line-height: 1.55;">Pair with QR, browse folders, filter current files, and upload directly back into the destination directory.</p>
-                    </article>
+                    </div>
+
+                    <!-- Right: preview -->
+                    <div class="hero-preview glass reveal" id="hero-preview">
+                        <!-- Desktop app mockup -->
+                        <div class="preview-app">
+                            <div class="preview-titlebar">
+                                <div class="traffic-lights" aria-hidden="true">
+                                    <span class="light close"></span>
+                                    <span class="light minimize"></span>
+                                    <span class="light expand"></span>
+                                </div>
+                                <span class="preview-titlebar-title">LocalBridge · Desktop</span>
+                            </div>
+                            <div class="preview-body">
+                                <div class="preview-sidebar">
+                                    <div class="preview-block" style="width:70%;height:20px;"></div>
+                                    <div class="preview-block" style="height:80px;margin-top:4px;"></div>
+                                    <div class="preview-block accent" style="height:20px;margin-top:4px;"></div>
+                                    <div class="preview-block" style="height:20px;"></div>
+                                </div>
+                                <div class="preview-main">
+                                    <div class="preview-toolbar-row">
+                                        <div class="preview-tool" style="width:36px;"></div>
+                                        <div class="preview-tool" style="flex:1;"></div>
+                                        <div class="preview-tool" style="width:36px;"></div>
+                                        <div class="preview-tool" style="width:36px;"></div>
+                                    </div>
+                                    <div class="preview-grid-files">
+                                        <div class="preview-file f-blue"></div>
+                                        <div class="preview-file f-purple"></div>
+                                        <div class="preview-file"></div>
+                                        <div class="preview-file f-green"></div>
+                                        <div class="preview-file"></div>
+                                        <div class="preview-file f-blue"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile pill cards -->
+                        <div class="preview-mobile">
+                            <div class="mobile-card">
+                                <div class="mobile-card-icon">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2"/>
+                                        <path d="M4.26 10.85a8 8 0 0 1 11.48"/>
+                                    </svg>
+                                </div>
+                                <p>Scan QR on desktop to pair instantly over WiFi.</p>
+                            </div>
+                            <div class="mobile-card">
+                                <div class="mobile-card-icon">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="8 17 12 21 16 17"/>
+                                        <line x1="12" y1="12" x2="12" y2="21"/>
+                                        <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
+                                    </svg>
+                                </div>
+                                <p>Upload files straight into the current desktop folder.</p>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-            </aside>
+            </div>
         </section>
 
-        <section class="section glass">
-            <div class="section-head">
-                <div>
-                    <span class="eyebrow">Experience</span>
-                    <h2>Everything stays on one polished local workflow.</h2>
+        <!-- ── Features ── -->
+        <section class="features">
+            <div class="container">
+                <div class="features-head reveal" id="feat-head">
+                    <span class="section-label">What's inside</span>
+                    <h2>Better than a cable. Much better than the cloud.</h2>
+                    <p>LocalBridge is redesigned from scratch — a unified glass UI across desktop and mobile, with real transfer feedback, proper navigation, and zero overhead.</p>
                 </div>
-                <p>The redesign aligns all entry points around the same macOS-inspired glass UI: clearer pairing, stronger navigation hierarchy, real transfer visibility, and fewer dead controls.</p>
-            </div>
 
-            <div class="feature-grid">
-                <article class="feature-card">
-                    <div class="feature-icon">01</div>
-                    <h3>Desktop command center</h3>
-                    <p>A structured sidebar, live QR pairing area, working view modes, path navigation, and transfer activity that actually reads like a desktop app.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon">02</div>
-                    <h3>Mobile browser and uploads</h3>
-                    <p>The PWA now supports scan-to-pair, current-folder filtering, pane switching, live upload progress, and session reset without breaking the browsing flow.</p>
-                </article>
-                <article class="feature-card">
-                    <div class="feature-icon">03</div>
-                    <h3>Consistent visual system</h3>
-                    <p>Shared glass surfaces, window chrome, structured spacing, and purposeful contrast replace the previous “unstyled app” look across the whole product.</p>
-                </article>
+                <div class="features-panel glass reveal" id="feat-panel">
+                    <div class="features-inner">
+
+                        <div class="feature-card">
+                            <span class="badge">01</span>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                    <path d="M8 21h8M12 17v4"/>
+                                </svg>
+                            </div>
+                            <h3>Desktop command center</h3>
+                            <p>Mac-inspired glass sidebar, live QR pairing, working grid/list views, breadcrumb navigation, and a live transfer panel that updates from the Rust backend in real time.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <span class="badge">02</span>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="5" y="2" width="14" height="20" rx="2"/>
+                                    <line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                            <h3>Premium mobile PWA</h3>
+                            <p>Scan to pair, animated QR scanner, folder filter, real upload progress with toast notifications, pane switching dock, and a home-screen install flow that works offline.</p>
+                        </div>
+
+                        <div class="feature-card">
+                            <span class="badge">03</span>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                            </div>
+                            <h3>Zero cloud, full privacy</h3>
+                            <p>All traffic stays on your local network. No relay server, no account, no data leaves your home. The Rust backend serves files directly over a token-secured HTTP API.</p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── CTA ── -->
+        <section class="cta-strip">
+            <div class="container">
+                <div class="cta-inner reveal" id="cta">
+                    <div class="cta-copy">
+                        <h2>Ready to ditch the cable?</h2>
+                        <p>Download the desktop app, open the landing page on your phone, and you're paired in under 10 seconds. No setup wizard, no cloud account.</p>
+                    </div>
+                    <div class="cta-btns">
+                        <a href="https://github.com/javex-12/localbridge/releases" class="btn-primary">
+                            Download for Desktop
+                        </a>
+                        <button id="install-btn-2" class="btn-secondary">
+                            Install Phone PWA
+                        </button>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
-    <footer class="container">LocalBridge runs across your local network. No cloud relay required.</footer>
+    <!-- ── Footer ── -->
+    <footer>
+        <div class="container footer-inner">
+            <span>LocalBridge — fully local, fully private.</span>
+            <div class="footer-links">
+                <a href="https://github.com/javex-12/localbridge">GitHub</a>
+                <a href="https://github.com/javex-12/localbridge/releases">Releases</a>
+                <a href="pwa/index.html">Open PWA</a>
+            </div>
+        </div>
+    </footer>
 
     <script>
-        let deferredPrompt;
+    /* ── PWA install ── */
+    let deferredPrompt;
 
-        window.addEventListener('beforeinstallprompt', (event) => {
-            event.preventDefault();
-            deferredPrompt = event;
-        });
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+    });
 
-        document.getElementById('install-btn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                return;
-            }
-
+    function triggerInstall() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+        } else {
             window.location.href = 'pwa/index.html';
-        });
+        }
+    }
 
-        gsap.from('.hero-copy', { duration: 1, y: 24, opacity: 0, ease: 'expo.out' });
-        gsap.from('.hero-preview', { duration: 1.1, y: 24, opacity: 0, ease: 'expo.out', delay: 0.1 });
-        gsap.from('.feature-card', { duration: 0.8, y: 24, opacity: 0, ease: 'power3.out', stagger: 0.08, delay: 0.25 });
+    document.getElementById('install-btn').addEventListener('click', triggerInstall);
+    document.getElementById('install-btn-2').addEventListener('click', triggerInstall);
+
+    /* ── GSAP scroll reveals ── */
+    function reveal() {
+        document.querySelectorAll('.reveal').forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight - 60) {
+                el.classList.remove('reveal');
+                gsap.from(el, { duration: 0.8, y: 24, opacity: 0, ease: 'expo.out' });
+            }
+        });
+    }
+
+    window.addEventListener('scroll', reveal, { passive: true });
+
+    /* ── Hero entrance ── */
+    gsap.from('#hero-copy', { duration: 1.0, y: 32, opacity: 0, ease: 'expo.out', delay: 0.1 });
+    gsap.from('#hero-preview', { duration: 1.0, y: 32, opacity: 0, ease: 'expo.out', delay: 0.22 });
+
+    /* ── Animated preview file "pulse" ── */
+    gsap.to('.preview-file', {
+        scale: 1.04,
+        duration: 1.8,
+        ease: 'sine.inOut',
+        stagger: { each: 0.3, repeat: -1, yoyo: true },
+    });
+
+    setTimeout(reveal, 400);
     </script>
 </body>
 </html>

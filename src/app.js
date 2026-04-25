@@ -127,21 +127,22 @@ function renderFiles(files) {
     fileCountEl.textContent = `${files.length} item${files.length === 1 ? '' : 's'}`;
     fileSummaryEl.textContent = `${folderCount} folder${folderCount === 1 ? '' : 's'} and ${fileCount} file${fileCount === 1 ? '' : 's'} in view.`;
 
-    files.forEach((file) => {
+    files.forEach((file, i) => {
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'file-item';
+        item.style.animationDelay = `${i * 28}ms`;
         item.innerHTML = `
-            <div class="file-icon-wrap">${getFileIcon(file.kind)}</div>
+            <div class="file-icon-wrap kind-${file.kind}">${getFileIcon(file.kind)}</div>
             <div class="file-main">
                 <div class="file-name">${escapeHtml(file.name)}</div>
                 <div class="file-meta">
-                    <span>${labelKind(file.kind)}</span>
-                    <span>${formatSize(file.size)}</span>
-                    <span>${formatDate(file.modified)}</span>
+                    <span class="file-kind">${labelKind(file.kind)}</span>
+                    <span class="file-size">${formatSize(file.size)}</span>
+                    <span class="file-date">${formatDate(file.modified)}</span>
                 </div>
             </div>
-            <div class="file-action">${file.kind === 'folder' ? 'Open' : 'Available to phone'}</div>
+            <div class="file-action">${file.kind === 'folder' ? 'Open →' : 'On network'}</div>
         `;
 
         item.addEventListener('click', () => handleFileClick(file, item));
@@ -366,22 +367,16 @@ function labelKind(kind) {
 }
 
 function getFileIcon(kind) {
-    switch (kind) {
-        case 'folder':
-            return '📁';
-        case 'image':
-            return '🖼️';
-        case 'video':
-            return '🎬';
-        case 'audio':
-            return '🎵';
-        case 'archive':
-            return '🧰';
-        case 'document':
-            return '📄';
-        default:
-            return '·';
-    }
+    const icons = {
+        folder:   `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffb830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+        image:    `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
+        video:    `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+        audio:    `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+        archive:  `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
+        document: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
+        file:     `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`,
+    };
+    return icons[kind] || icons.file;
 }
 
 function escapeHtml(value) {

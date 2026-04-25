@@ -6,7 +6,7 @@
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
-    "build": "if not exist public mkdir public && xcopy /Y /Q landing\\index.html public\\index.html* && xcopy /E /Y /Q pwa public\\pwa\\",
+    "build": "node build.js",
     "desktop:build": "tauri build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

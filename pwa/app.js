@@ -1,43 +1,49 @@
-let currentPath = '/';
-let token = '';
-let laptopIp = '';
-let currentItems = [];
-let currentPane = 'browse';
-let searchTimer = null;
-let thumbnailVersion = 0;
-let scanTimer = null;
-const uploads = new Map();
+/* ── State ────────────────────────────────────────────────── */
+let currentPath    = '/';
+let token          = '';
+let laptopIp       = '';
+let currentItems   = [];
+let currentPane    = 'browse';
+let searchTimer    = null;
+let thumbVersion   = 0;
+let scanTimer      = null;
+const uploads      = new Map();
 
-const connectScreen = document.getElementById('connect-screen');
-const browserScreen = document.getElementById('browser-screen');
-const fileList = document.getElementById('file-list');
-const browseCount = document.getElementById('browse-count');
-const currentDirLabel = document.getElementById('current-dir-label');
-const sessionLabel = document.getElementById('session-label');
-const currentPathMobile = document.getElementById('current-path-mobile');
-const browserEmpty = document.getElementById('browser-empty');
-const mobileSearch = document.getElementById('mobile-search');
+/* ── DOM refs ─────────────────────────────────────────────── */
+const connectScreen        = document.getElementById('connect-screen');
+const browserScreen        = document.getElementById('browser-screen');
+const fileList             = document.getElementById('file-list');
+const browseCount          = document.getElementById('browse-count');
+const currentDirLabel      = document.getElementById('current-dir-label');
+const sessionLabel         = document.getElementById('session-label');
+const currentPathMobile    = document.getElementById('current-path-mobile');
+const browserEmpty         = document.getElementById('browser-empty');
+const mobileSearch         = document.getElementById('mobile-search');
 const clearMobileSearchBtn = document.getElementById('btn-clear-mobile-search');
-const transferCountMobile = document.getElementById('transfer-count-mobile');
-const mobileTransferList = document.getElementById('mobile-transfer-list');
-const settingsHost = document.getElementById('settings-host');
-const settingsFolder = document.getElementById('settings-folder');
-const btnBackDir = document.getElementById('btn-back-dir');
-const btnUpload = document.getElementById('btn-upload-pro');
-const btnScanStart = document.getElementById('btn-scan-start');
-const btnRescan = document.getElementById('btn-rescan');
-const pillNetwork = document.getElementById('pill-network');
-const pillCamera = document.getElementById('pill-camera');
-const fileInput = document.getElementById('file-input');
-const scannerVideo = document.getElementById('scanner-video');
-const scannerCanvas = document.getElementById('scanner-canvas');
-const dockItems = document.querySelectorAll('.dock-item');
+const transferCountMobile  = document.getElementById('transfer-count-mobile');
+const mobileTransferList   = document.getElementById('mobile-transfer-list');
+const settingsHost         = document.getElementById('settings-host');
+const settingsFolder       = document.getElementById('settings-folder');
+const btnBackDir           = document.getElementById('btn-back-dir');
+const btnUpload            = document.getElementById('btn-upload-pro');
+const btnScanStart         = document.getElementById('btn-scan-start');
+const btnRescan            = document.getElementById('btn-rescan');
+const pillNetwork          = document.getElementById('pill-network');
+const pillCamera           = document.getElementById('pill-camera');
+const fileInput            = document.getElementById('file-input');
+const scannerVideo         = document.getElementById('scanner-video');
+const scannerCanvas        = document.getElementById('scanner-canvas');
+const uploadToast          = document.getElementById('upload-toast');
+const uploadToastLabel     = document.getElementById('upload-toast-label');
+const uploadToastFill      = document.getElementById('upload-toast-fill');
+const dockItems            = document.querySelectorAll('.dock-item');
 const panes = {
-    browse: document.getElementById('browse-pane'),
+    browse:    document.getElementById('browse-pane'),
     transfers: document.getElementById('transfers-pane'),
-    settings: document.getElementById('settings-pane')
+    settings:  document.getElementById('settings-pane'),
 };
 
+/* ── Init ─────────────────────────────────────────────────── */
 function init() {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
@@ -45,51 +51,53 @@ function init() {
 
     checkSetup();
 
+    // Entrance animation
     gsap.from('#connect-window', {
-        duration: 1,
-        y: 50,
+        duration: 0.9,
+        y: 48,
         opacity: 0,
         scale: 0.96,
-        ease: 'expo.out'
+        ease: 'expo.out',
     });
 }
 
+/* ── Setup checks ─────────────────────────────────────────── */
 function checkSetup() {
-    pillNetwork.textContent = navigator.onLine ? 'Phone is online' : 'Offline mode is fine';
-    pillNetwork.classList.add('is-ready');
+    const online = navigator.onLine;
+    pillNetwork.textContent = online ? '✓ Network ready' : '⚡ Offline ready';
+    pillNetwork.classList.toggle('ok', online);
 
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
-            if (devices.some((device) => device.kind === 'videoinput')) {
-                pillCamera.textContent = 'Camera available';
-                pillCamera.classList.add('is-ready');
-            } else {
-                pillCamera.textContent = 'Camera not detected';
-            }
+            const hasCamera = devices.some((d) => d.kind === 'videoinput');
+            pillCamera.textContent = hasCamera ? '✓ Camera ready' : '✗ No camera';
+            pillCamera.classList.toggle('ok', hasCamera);
+            pillCamera.classList.toggle('fail', !hasCamera);
         })
         .catch(() => {
-            pillCamera.textContent = 'Camera access pending';
+            pillCamera.textContent = '· Camera pending';
         });
 }
 
+/* ── QR Scanner ───────────────────────────────────────────── */
 async function startScan() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         });
 
         scannerVideo.srcObject = stream;
         await scannerVideo.play();
 
-        btnScanStart.textContent = 'Scanning...';
+        btnScanStart.textContent = 'Scanning…';
         btnScanStart.disabled = true;
-        pillCamera.textContent = 'Scanning for QR';
-        pillCamera.classList.add('is-ready');
+        pillCamera.textContent = '● Scanning QR';
+        pillCamera.classList.add('ok');
 
         clearInterval(scanTimer);
-        scanTimer = setInterval(readQrFrame, 220);
-    } catch (error) {
-        console.error(error);
+        scanTimer = setInterval(readQrFrame, 200);
+    } catch (err) {
+        console.error(err);
         alert('Camera permission is required to pair with the desktop app.');
         btnScanStart.textContent = 'Start Camera Scan';
         btnScanStart.disabled = false;
@@ -97,58 +105,55 @@ async function startScan() {
 }
 
 function readQrFrame() {
-    if (scannerVideo.readyState !== scannerVideo.HAVE_ENOUGH_DATA) {
-        return;
-    }
+    if (scannerVideo.readyState !== scannerVideo.HAVE_ENOUGH_DATA) return;
 
-    scannerCanvas.width = scannerVideo.videoWidth;
+    scannerCanvas.width  = scannerVideo.videoWidth;
     scannerCanvas.height = scannerVideo.videoHeight;
-    const context = scannerCanvas.getContext('2d');
-    context.drawImage(scannerVideo, 0, 0, scannerCanvas.width, scannerCanvas.height);
-    const imageData = context.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    const ctx = scannerCanvas.getContext('2d');
+    ctx.drawImage(scannerVideo, 0, 0);
+    const img  = ctx.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
+    const code = jsQR(img.data, img.width, img.height);
 
-    if (!code) {
-        return;
-    }
+    if (!code) return;
 
     clearInterval(scanTimer);
-    if (navigator.vibrate) {
-        navigator.vibrate(120);
-    }
+    if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
 
     try {
         handleHandshake(JSON.parse(code.data));
-    } catch (error) {
-        console.error(error);
+    } catch (e) {
+        console.error(e);
+        alert('Invalid QR code. Please scan the LocalBridge desktop QR.');
     }
 }
 
+/* ── Handshake / session transition ─────────────────────── */
 async function handleHandshake(payload) {
     laptopIp = payload.ip;
-    token = payload.token;
-    sessionLabel.textContent = `Connected to ${laptopIp}`;
+    token    = payload.token;
+
+    sessionLabel.textContent = `● Connected to ${laptopIp}`;
     settingsHost.textContent = laptopIp;
 
     stopScanner();
 
-    const timeline = gsap.timeline();
-    browserScreen.classList.remove('hidden');
-    connectScreen.classList.add('hidden');
-
-    timeline.to('#connect-window', {
-        duration: 0.45,
+    // Animate out connect screen, animate in browser
+    gsap.to('#connect-window', {
+        duration: 0.38,
         opacity: 0,
         y: -28,
-        ease: 'power2.inOut'
-    });
-    timeline.set(connectScreen, { display: 'none' });
-    timeline.set(browserScreen, { display: 'block', opacity: 0, y: 18 });
-    timeline.to(browserScreen, {
-        duration: 0.7,
-        opacity: 1,
-        y: 0,
-        ease: 'expo.out'
+        scale: 0.96,
+        ease: 'power2.in',
+        onComplete: () => {
+            connectScreen.classList.add('hidden');
+            browserScreen.classList.remove('hidden');
+            gsap.from(browserScreen, {
+                duration: 0.6,
+                opacity: 0,
+                y: 20,
+                ease: 'expo.out',
+            });
+        },
     });
 
     setPane('browse');
@@ -158,99 +163,103 @@ async function handleHandshake(payload) {
 function stopScanner() {
     clearInterval(scanTimer);
     if (scannerVideo.srcObject) {
-        scannerVideo.srcObject.getTracks().forEach((track) => track.stop());
+        scannerVideo.srcObject.getTracks().forEach((t) => t.stop());
         scannerVideo.srcObject = null;
     }
 }
 
+/* ── File loading ─────────────────────────────────────────── */
 async function loadRemoteFiles(path) {
     currentPath = path;
-    currentPathMobile.textContent = currentPath;
-    currentDirLabel.textContent = basename(currentPath) || 'Workstation';
-    settingsFolder.textContent = currentPath;
-    btnBackDir.disabled = isRootPath(currentPath);
+    currentPathMobile.textContent = shorten(currentPath);
+    currentDirLabel.textContent   = basename(currentPath) || 'Workstation';
+    settingsFolder.textContent    = currentPath;
+    btnBackDir.disabled           = isRootPath(currentPath);
+
+    // Show skeleton while loading
+    fileList.innerHTML = [1,2,3,4].map(() =>
+        `<div class="file-cell"><div class="file-cell-icon kind-file skeleton" style="width:42px;height:42px;border-radius:13px;"></div><div class="file-cell-body"><div class="skeleton" style="height:12px;width:80%;border-radius:6px;margin-bottom:6px;"></div><div class="skeleton" style="height:10px;width:50%;border-radius:6px;"></div></div></div>`
+    ).join('');
+    browserEmpty.classList.add('hidden');
 
     try {
-        const response = await fetch(`http://${laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${token}`);
-        const files = await response.json();
+        const res   = await fetch(`http://${laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${token}`);
+        const files = await res.json();
         currentItems = sortFiles(files);
         renderFiles(filterCurrentItems());
-    } catch (error) {
-        console.error(error);
-        sessionLabel.textContent = 'Connection interrupted';
+    } catch (err) {
+        console.error(err);
+        sessionLabel.textContent = '⚠ Connection interrupted';
+        fileList.innerHTML = '';
+        browserEmpty.classList.remove('hidden');
     }
 }
 
 function sortFiles(files) {
     return [...files].sort((a, b) => {
-        if (a.kind === 'folder' && b.kind !== 'folder') {
-            return -1;
-        }
-        if (a.kind !== 'folder' && b.kind === 'folder') {
-            return 1;
-        }
+        if (a.kind === 'folder' && b.kind !== 'folder') return -1;
+        if (a.kind !== 'folder' && b.kind === 'folder') return 1;
         return a.name.localeCompare(b.name);
     });
 }
 
 function filterCurrentItems() {
-    const query = mobileSearch.value.trim().toLowerCase();
-    if (!query) {
-        return currentItems;
-    }
-
-    return currentItems.filter((file) => file.name.toLowerCase().includes(query));
+    const q = mobileSearch.value.trim().toLowerCase();
+    return q ? currentItems.filter((f) => f.name.toLowerCase().includes(q)) : currentItems;
 }
 
+/* ── File rendering ───────────────────────────────────────── */
 function renderFiles(files) {
     fileList.innerHTML = '';
     const showEmpty = files.length === 0;
     browserEmpty.classList.toggle('hidden', !showEmpty);
     browseCount.textContent = `${files.length} item${files.length === 1 ? '' : 's'}`;
-    clearMobileSearchBtn.classList.toggle('hidden', mobileSearch.value.trim() === '');
+    clearMobileSearchBtn.classList.toggle('hidden', !mobileSearch.value.trim());
 
-    if (showEmpty) {
-        return;
-    }
+    if (showEmpty) return;
 
-    const renderId = ++thumbnailVersion;
+    const renderId = ++thumbVersion;
 
-    files.forEach((file) => {
+    files.forEach((file, i) => {
         const card = document.createElement('button');
-        card.type = 'button';
-        card.className = `file-card ${file.kind === 'folder' ? 'is-folder' : ''}`;
+        card.type      = 'button';
+        card.className = 'file-cell';
+        card.style.animationDelay = `${i * 25}ms`;
+
         card.innerHTML = `
-            <div class="file-visual">${getFileIcon(file.kind)}</div>
-            <div class="file-name">${escapeHtml(file.name)}</div>
-            <div class="file-meta">
-                <span class="file-tag">${labelKind(file.kind)}</span>
-                <span>${formatSize(file.size)}</span>
+            <div class="file-cell-icon kind-${file.kind}">${getFileIcon(file.kind)}</div>
+            <div class="file-cell-body">
+                <div class="file-cell-name">${escapeHtml(file.name)}</div>
+                <div class="file-cell-size">${file.kind === 'folder' ? 'Folder' : formatSize(file.size)}</div>
             </div>
         `;
 
         card.addEventListener('click', () => handleFileTap(file));
         fileList.appendChild(card);
 
+        // Lazy-load thumbnail for images
         if (file.kind === 'image') {
-            hydrateThumbnail(file, card.querySelector('.file-visual'), renderId);
+            hydrateThumbnail(file, card, renderId);
         }
     });
 }
 
-async function hydrateThumbnail(file, container, renderId) {
+async function hydrateThumbnail(file, card, renderId) {
     try {
-        const response = await fetch(`http://${laptopIp}:3000/api/thumbnail?path=${encodeURIComponent(file.path)}&token=${token}`);
-        if (!response.ok || renderId !== thumbnailVersion) {
-            return;
-        }
-
-        const payload = await response.json();
+        const res = await fetch(`http://${laptopIp}:3000/api/thumbnail?path=${encodeURIComponent(file.path)}&token=${token}`);
+        if (!res.ok || renderId !== thumbVersion) return;
+        const payload = await res.json();
         if (payload.thumbnail) {
-            container.innerHTML = `<img src="data:image/jpeg;base64,${payload.thumbnail}" alt="${escapeHtml(file.name)}">`;
+            const icon = card.querySelector('.file-cell-icon');
+            if (icon) {
+                icon.style.width  = '100%';
+                icon.style.height = 'auto';
+                icon.style.aspectRatio = '4/3';
+                icon.style.borderRadius = '10px';
+                icon.innerHTML = `<img src="data:image/jpeg;base64,${payload.thumbnail}" alt="${escapeHtml(file.name)}" class="file-cell-thumb">`;
+            }
         }
-    } catch (error) {
-        console.error(error);
-    }
+    } catch (e) { /* silent */ }
 }
 
 function handleFileTap(file) {
@@ -260,34 +269,34 @@ function handleFileTap(file) {
     }
 
     recordTransfer({
-        id: `download-${Date.now()}`,
-        name: file.name,
-        status: 'ready',
+        id:          `download-${Date.now()}`,
+        name:        file.name,
+        status:      'ready',
         transferred: file.size,
-        total: file.size
+        total:       file.size,
     });
 
-    window.open(`http://${laptopIp}:3000/api/file?path=${encodeURIComponent(file.path)}&token=${token}`, '_blank');
+    window.open(
+        `http://${laptopIp}:3000/api/file?path=${encodeURIComponent(file.path)}&token=${token}`,
+        '_blank'
+    );
 }
 
+/* ── Pane switching ───────────────────────────────────────── */
 function setPane(paneName) {
     currentPane = paneName;
     Object.entries(panes).forEach(([name, pane]) => {
         pane.classList.toggle('hidden', name !== paneName);
     });
-
     dockItems.forEach((item) => {
         item.classList.toggle('is-active', item.dataset.pane === paneName);
     });
 }
 
+/* ── Transfers ────────────────────────────────────────────── */
 function recordTransfer(entry) {
     const existing = uploads.get(entry.id) || {};
-    uploads.set(entry.id, {
-        ...existing,
-        ...entry,
-        updatedAt: Date.now()
-    });
+    uploads.set(entry.id, { ...existing, ...entry, updatedAt: Date.now() });
     renderTransfers();
 }
 
@@ -299,37 +308,46 @@ function renderTransfers() {
         mobileTransferList.innerHTML = `
             <div class="transfer-empty">
                 <strong>No uploads yet</strong>
-                <p>Use the plus button to send files to the desktop.</p>
-            </div>
-        `;
+                <p>Tap the upload button to send files to the desktop.</p>
+            </div>`;
         return;
     }
 
     mobileTransferList.innerHTML = items.map((item) => {
-        const total = item.total || 0;
-        const progress = total > 0 ? Math.min(100, Math.round((item.transferred / total) * 100)) : item.status === 'done' ? 100 : 12;
+        const total    = item.total || 0;
+        const progress = total > 0
+            ? Math.min(100, Math.round((item.transferred / total) * 100))
+            : item.status === 'done' ? 100 : 12;
+        const isDone    = item.status === 'done';
+        const isFailed  = item.status === 'failed';
+        const barClass  = isDone || isFailed ? '' : 'is-indeterminate';
+        const barWidth  = isDone ? '100%' : isFailed ? '0%' : `${progress}%`;
+
         return `
             <article class="transfer-item">
-                <div class="transfer-item-header">
-                    <strong>${escapeHtml(item.name)}</strong>
+                <div class="transfer-row">
+                    <div class="transfer-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/>
+                            <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
+                        </svg>
+                    </div>
+                    <div class="transfer-info">
+                        <div class="transfer-name">${escapeHtml(item.name)}</div>
+                        <div class="transfer-sub">${formatSize(item.transferred)}${total ? ` / ${formatSize(total)}` : ''} · ${progress}%</div>
+                    </div>
                     <span class="transfer-status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span>
                 </div>
-                <div class="transfer-item-meta">
-                    <span>${formatSize(item.transferred)}${total ? ` / ${formatSize(total)}` : ''}</span>
-                    <span>${progress}%</span>
-                </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width:${progress}%"></div>
+                    <div class="progress-fill ${barClass}" style="width:${barWidth}"></div>
                 </div>
-            </article>
-        `;
+            </article>`;
     }).join('');
 }
 
+/* ── Upload ───────────────────────────────────────────────── */
 async function uploadFiles(files) {
-    if (!files.length || !laptopIp || !token) {
-        return;
-    }
+    if (!files.length || !laptopIp || !token) return;
 
     setPane('transfers');
 
@@ -338,62 +356,57 @@ async function uploadFiles(files) {
     }
 
     fileInput.value = '';
+    hideToast();
     loadRemoteFiles(currentPath);
 }
 
 function uploadSingleFile(file) {
     return new Promise((resolve) => {
-        const id = `upload-${file.name}-${Date.now()}`;
+        const id       = `upload-${file.name}-${Date.now()}`;
         const formData = new FormData();
         formData.append('file', file, file.name);
 
-        recordTransfer({
-            id,
-            name: file.name,
-            status: 'queued',
-            transferred: 0,
-            total: file.size
-        });
+        recordTransfer({ id, name: file.name, status: 'queued', transferred: 0, total: file.size });
+        showToast(file.name, 0);
 
-        const request = new XMLHttpRequest();
-        request.open('POST', `http://${laptopIp}:3000/api/upload?path=${encodeURIComponent(currentPath)}&token=${token}`);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `http://${laptopIp}:3000/api/upload?path=${encodeURIComponent(currentPath)}&token=${token}`);
 
-        request.upload.onprogress = (event) => {
-            recordTransfer({
-                id,
-                name: file.name,
-                status: 'uploading',
-                transferred: event.loaded,
-                total: event.total || file.size
-            });
+        xhr.upload.onprogress = (e) => {
+            const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
+            recordTransfer({ id, name: file.name, status: 'uploading', transferred: e.loaded, total: e.total || file.size });
+            showToast(file.name, pct);
         };
 
-        request.onload = () => {
-            recordTransfer({
-                id,
-                name: file.name,
-                status: request.status >= 200 && request.status < 300 ? 'done' : 'failed',
-                transferred: file.size,
-                total: file.size
-            });
+        xhr.onload = () => {
+            const ok = xhr.status >= 200 && xhr.status < 300;
+            recordTransfer({ id, name: file.name, status: ok ? 'done' : 'failed', transferred: file.size, total: file.size });
+            showToast(file.name, ok ? 100 : 0);
             resolve();
         };
 
-        request.onerror = () => {
-            recordTransfer({
-                id,
-                name: file.name,
-                status: 'failed',
-                transferred: 0,
-                total: file.size
-            });
+        xhr.onerror = () => {
+            recordTransfer({ id, name: file.name, status: 'failed', transferred: 0, total: file.size });
             resolve();
         };
 
-        request.send(formData);
+        xhr.send(formData);
     });
 }
 
+function showToast(name, pct) {
+    uploadToastLabel.textContent = pct === 100
+        ? `✓ ${name} done`
+        : `Uploading ${name}… ${pct}%`;
+    uploadToastFill.style.width = `${pct}%`;
+    uploadToast.classList.add('visible');
+}
+
+function hideToast() {
+    uploadToast.classList.remove('visible');
+}
+
+/* ── Session reset ────────────────────────────────────────── */
 function resetSession() {
     stopScanner();
     currentPath = '/';
@@ -403,137 +416,51 @@ function resetSession() {
     uploads.clear();
     mobileSearch.value = '';
     currentPathMobile.textContent = '/';
-    currentDirLabel.textContent = 'Workstation';
-    sessionLabel.textContent = 'Waiting to connect';
-    settingsHost.textContent = 'Not connected';
-    settingsFolder.textContent = '/';
-    btnBackDir.disabled = true;
-    browseCount.textContent = '0 items';
+    currentDirLabel.textContent   = 'Workstation';
+    sessionLabel.textContent      = '● Connected locally';
+    settingsHost.textContent      = 'Not connected';
+    settingsFolder.textContent    = '/';
+    btnBackDir.disabled           = true;
+    browseCount.textContent       = '0 items';
+    fileList.innerHTML            = '';
     renderTransfers();
+    hideToast();
 
     browserScreen.classList.add('hidden');
     connectScreen.classList.remove('hidden');
-    connectScreen.style.display = 'block';
-    browserScreen.style.display = 'none';
     btnScanStart.textContent = 'Start Camera Scan';
-    btnScanStart.disabled = false;
+    btnScanStart.disabled    = false;
 
-    gsap.fromTo('#connect-window', {
-        opacity: 0,
-        y: 28
-    }, {
-        duration: 0.6,
-        opacity: 1,
-        y: 0,
-        ease: 'expo.out'
-    });
+    gsap.fromTo('#connect-window',
+        { opacity: 0, y: 32, scale: 0.96 },
+        { duration: 0.6, opacity: 1, y: 0, scale: 1, ease: 'expo.out' }
+    );
 }
 
-function goToParentDirectory() {
-    if (isRootPath(currentPath)) {
-        return;
-    }
-
-    const nextPath = parentPath(currentPath);
-    mobileSearch.value = '';
-    clearMobileSearchBtn.classList.add('hidden');
-    loadRemoteFiles(nextPath);
-}
-
-function parentPath(path) {
-    const normalized = String(path).replace(/\\/g, '/').replace(/\/$/, '');
-    if (normalized === '/' || /^[A-Za-z]:$/.test(normalized)) {
-        return path;
-    }
-
-    const parts = normalized.split('/').filter(Boolean);
-    if (parts.length === 0) {
-        return '/';
-    }
-
-    if (/^[A-Za-z]:$/.test(parts[0])) {
-        if (parts.length === 1) {
-            return `${parts[0]}/`;
-        }
-        parts.pop();
-        return parts.length === 1 ? `${parts[0]}/` : `${parts.join('/')}`;
-    }
-
-    parts.pop();
-    return `/${parts.join('/')}` || '/';
-}
-
-function isRootPath(path) {
-    const normalized = String(path).replace(/\\/g, '/').replace(/\/$/, '');
-    return normalized === '' || normalized === '/' || /^[A-Za-z]:$/.test(normalized);
-}
-
-function basename(path) {
-    const normalized = String(path).replace(/\\/g, '/').replace(/\/$/, '');
-    if (/^[A-Za-z]:$/.test(normalized)) {
-        return normalized;
-    }
-    const parts = normalized.split('/').filter(Boolean);
-    return parts.at(-1) || path;
+/* ── Helpers ──────────────────────────────────────────────── */
+function getFileIcon(kind) {
+    const icons = {
+        folder:   `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffb830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+        image:    `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
+        video:    `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+        audio:    `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+        archive:  `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
+        document: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
+        file:     `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`,
+    };
+    return icons[kind] || icons.file;
 }
 
 function formatSize(bytes) {
-    if (!bytes) {
-        return '--';
-    }
-
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let value = bytes;
-    let unitIndex = 0;
-
-    while (value >= 1024 && unitIndex < units.length - 1) {
-        value /= 1024;
-        unitIndex += 1;
-    }
-
-    return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+    if (!bytes) return '--';
+    const units = ['B','KB','MB','GB','TB'];
+    let v = bytes, i = 0;
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-function getFileIcon(kind) {
-    switch (kind) {
-        case 'folder':
-            return '📁';
-        case 'image':
-            return '🖼️';
-        case 'video':
-            return '🎬';
-        case 'audio':
-            return '🎵';
-        case 'archive':
-            return '🧰';
-        case 'document':
-            return '📄';
-        default:
-            return '·';
-    }
-}
-
-function labelKind(kind) {
-    switch (kind) {
-        case 'folder':
-            return 'Folder';
-        case 'image':
-            return 'Image';
-        case 'video':
-            return 'Video';
-        case 'audio':
-            return 'Audio';
-        case 'archive':
-            return 'Archive';
-        case 'document':
-            return 'Document';
-        default:
-            return 'File';
-    }
-}
-
-function escapeHtml(value) {
-    return String(value)
+function escapeHtml(v) {
+    return String(v)
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
@@ -541,23 +468,56 @@ function escapeHtml(value) {
         .replaceAll("'", '&#39;');
 }
 
+function basename(path) {
+    const n = String(path).replace(/\\/g, '/').replace(/\/$/, '');
+    if (/^[A-Za-z]:$/.test(n)) return n;
+    return n.split('/').filter(Boolean).at(-1) || path;
+}
+
+function shorten(path) {
+    if (!path || path === '/') return '/';
+    const parts = String(path).replace(/\\/g, '/').replace(/\/$/, '').split('/').filter(Boolean);
+    return parts.length <= 2 ? path : `…/${parts.slice(-2).join('/')}`;
+}
+
+function parentPath(path) {
+    const n = String(path).replace(/\\/g, '/').replace(/\/$/, '');
+    if (n === '/' || /^[A-Za-z]:$/.test(n)) return path;
+    const parts = n.split('/').filter(Boolean);
+    if (!parts.length) return '/';
+    if (/^[A-Za-z]:$/.test(parts[0])) {
+        parts.pop();
+        return parts.length === 1 ? `${parts[0]}/` : parts.join('/');
+    }
+    parts.pop();
+    return `/${parts.join('/')}` || '/';
+}
+
+function isRootPath(path) {
+    const n = String(path).replace(/\\/g, '/').replace(/\/$/, '');
+    return n === '' || n === '/' || /^[A-Za-z]:$/.test(n);
+}
+
+/* ── Event wiring ─────────────────────────────────────────── */
 btnScanStart.addEventListener('click', startScan);
-btnBackDir.addEventListener('click', goToParentDirectory);
+btnBackDir.addEventListener('click', () => {
+    if (!isRootPath(currentPath)) {
+        mobileSearch.value = '';
+        clearMobileSearchBtn.classList.add('hidden');
+        loadRemoteFiles(parentPath(currentPath));
+    }
+});
 btnUpload.addEventListener('click', () => fileInput.click());
 btnRescan.addEventListener('click', resetSession);
 fileInput.addEventListener('change', () => uploadFiles([...fileInput.files]));
 mobileSearch.addEventListener('input', () => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-        renderFiles(filterCurrentItems());
-    }, 120);
+    searchTimer = setTimeout(() => renderFiles(filterCurrentItems()), 100);
 });
 clearMobileSearchBtn.addEventListener('click', () => {
     mobileSearch.value = '';
     renderFiles(filterCurrentItems());
 });
-dockItems.forEach((item) => {
-    item.addEventListener('click', () => setPane(item.dataset.pane));
-});
+dockItems.forEach((item) => item.addEventListener('click', () => setPane(item.dataset.pane)));
 
 init();
