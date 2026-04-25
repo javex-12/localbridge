@@ -1060,8 +1060,9 @@
         e.preventDefault();
         deferredPrompt = e;
         // Show install buttons as active
-        document.querySelectorAll('.install-trigger').forEach(btn => {
-            btn.style.boxShadow = '0 10px 30px rgba(10,132,255,0.50)';
+        ['install-btn', 'install-btn-2'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.style.boxShadow = '0 10px 30px rgba(10,132,255,0.50)';
         });
     });
 
@@ -1231,8 +1232,9 @@
     /* ═══════════════════════════════════════════
        Wire all install buttons
     ═══════════════════════════════════════════ */
-    document.querySelectorAll('.install-trigger').forEach(btn => {
-        btn.addEventListener('click', triggerInstall);
+    ['install-btn', 'install-btn-2'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', triggerInstall);
     });
 
     /* ═══════════════════════════════════════════
