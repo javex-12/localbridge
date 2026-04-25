@@ -3,247 +3,573 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalBridge — Elite Offline Transfer</title>
+    <title>LocalBridge | Offline File Bridge</title>
+    <script src="pwa/gsap.js"></script>
     <style>
         :root {
-            --bg: #050505;
-            --surface: #121212;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --text: #ffffff;
-            --text-dim: #94a3b8;
-            --glass: rgba(255, 255, 255, 0.03);
-            --border: rgba(255, 255, 255, 0.1);
+            --bg: #070b14;
+            --panel: rgba(16, 24, 39, 0.74);
+            --panel-soft: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.12);
+            --text-primary: #f6f8fc;
+            --text-secondary: #aab6cd;
+            --text-muted: #7f8ba4;
+            --accent: #0a84ff;
+            --accent-soft: rgba(10, 132, 255, 0.18);
+            --green: #32d74b;
+            --yellow: #ffd60a;
+            --red: #ff5f57;
+            --shadow: 0 30px 70px rgba(3, 8, 20, 0.42);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
+            font-family: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-primary);
+            background:
+                radial-gradient(circle at top left, rgba(126, 113, 255, 0.22), transparent 24%),
+                radial-gradient(circle at top right, rgba(10, 132, 255, 0.18), transparent 18%),
+                linear-gradient(180deg, #151b2d 0%, #0a0d15 46%, #06080f 100%);
             overflow-x: hidden;
         }
 
-        .glow-bg {
+        a,
+        button {
+            color: inherit;
+            font: inherit;
+        }
+
+        button {
+            border: none;
+            background: none;
+        }
+
+        .mesh {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at 50% -20%, #1e3a8a 0%, transparent 50%);
-            z-index: -1;
+            border-radius: 50%;
+            filter: blur(90px);
+            pointer-events: none;
             opacity: 0.5;
         }
 
-        nav {
-            padding: 20px 40px;
+        .mesh-one {
+            width: 30rem;
+            height: 30rem;
+            top: -12rem;
+            left: -12rem;
+            background: rgba(129, 118, 255, 0.52);
+        }
+
+        .mesh-two {
+            width: 34rem;
+            height: 34rem;
+            right: -14rem;
+            bottom: -16rem;
+            background: rgba(10, 132, 255, 0.26);
+        }
+
+        .container {
+            width: min(1200px, calc(100% - 40px));
+            margin: 0 auto;
+        }
+
+        .glass {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+            border: 1px solid var(--border);
+            backdrop-filter: blur(30px) saturate(170%);
+            -webkit-backdrop-filter: blur(30px) saturate(170%);
+            box-shadow: var(--shadow);
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(18px);
+            background: rgba(7, 11, 20, 0.45);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0; z-index: 100;
+            gap: 20px;
+            min-height: 88px;
         }
 
-        .logo { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; display: flex; align-items: center; gap: 8px; }
-        .logo span { color: var(--accent); }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
 
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .traffic-lights {
+            display: flex;
+            gap: 8px;
+        }
+
+        .light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .light.close { background: var(--red); }
+        .light.minimize { background: var(--yellow); }
+        .light.expand { background: var(--green); }
+
+        .brand-copy span,
+        .eyebrow {
+            display: inline-block;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .brand-copy strong {
+            display: block;
+            margin-top: 4px;
+            font-size: 1.05rem;
+            letter-spacing: -0.03em;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-btn,
+        .hero-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-radius: 16px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+        }
+
+        .nav-btn:hover,
+        .hero-btn:hover,
+        .feature-card:hover,
+        .preview-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-weight: 700;
+        }
+
+        main {
+            padding: 72px 0 80px;
+        }
 
         .hero {
-            padding: 100px 0 60px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: clamp(2.5rem, 8vw, 5rem);
-            font-weight: 900;
-            line-height: 1.1;
-            margin-bottom: 20px;
-            background: linear-gradient(to bottom, #fff 40%, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--text-dim);
-            max-width: 700px;
-            margin: 0 auto 40px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 16px 36px;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex; align-items: center; gap: 10px;
-            cursor: pointer;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 30px var(--accent-glow);
-            filter: brightness(1.1);
-        }
-
-        .btn-secondary {
-            background: var(--glass);
-            color: white;
-            border: 1px solid var(--border);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(255,255,255,0.2);
-        }
-
-        .steps {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-top: 100px;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 26px;
+            align-items: stretch;
         }
 
-        .step-card {
-            background: var(--glass);
-            border: 1px solid var(--border);
-            padding: 40px;
+        .hero-copy,
+        .hero-preview {
+            border-radius: 34px;
+            padding: 30px;
+        }
+
+        .hero-copy h1 {
+            margin-top: 16px;
+            font-size: clamp(3rem, 6vw, 5.5rem);
+            line-height: 0.95;
+            letter-spacing: -0.06em;
+        }
+
+        .hero-copy p {
+            margin-top: 20px;
+            max-width: 44rem;
+            color: var(--text-secondary);
+            font-size: 1.08rem;
+            line-height: 1.65;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 28px;
+        }
+
+        .hero-btn-primary {
+            background: linear-gradient(180deg, #1890ff 0%, #0a84ff 100%);
+            box-shadow: 0 20px 34px rgba(10, 132, 255, 0.28);
+            font-weight: 800;
+        }
+
+        .hero-btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-weight: 700;
+        }
+
+        .hero-meta {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 28px;
+        }
+
+        .meta-card {
+            padding: 18px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .meta-card strong {
+            display: block;
+            font-size: 1.2rem;
+            margin-top: 8px;
+            letter-spacing: -0.03em;
+        }
+
+        .meta-card p {
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        .preview-stack {
+            display: grid;
+            gap: 16px;
+            height: 100%;
+        }
+
+        .preview-card {
+            border-radius: 28px;
+            padding: 20px;
+            background: rgba(7, 11, 20, 0.34);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 180ms ease, border-color 180ms ease;
+        }
+
+        .preview-window {
+            aspect-ratio: 1.15;
+            margin-top: 16px;
             border-radius: 24px;
-            transition: transform 0.3s ease;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
         }
 
-        .step-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+        .preview-window::before {
+            content: "";
+            position: absolute;
+            inset: 16px;
+            border-radius: 18px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 50%),
+                rgba(7, 11, 20, 0.6);
+        }
 
-        .step-icon {
-            font-size: 2rem;
-            margin-bottom: 20px;
-            width: 60px; height: 60px;
-            background: var(--accent-glow);
-            display: flex; align-items: center; justify-content: center;
+        .preview-shell {
+            position: absolute;
+            inset: 24px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .preview-toolbar,
+        .preview-dock {
             border-radius: 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .step-card h3 { margin-bottom: 12px; font-size: 1.5rem; }
-        .step-card p { color: var(--text-dim); }
+        .preview-toolbar {
+            height: 52px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            flex: 1;
+        }
+
+        .preview-column,
+        .preview-cardlet {
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .preview-column {
+            min-height: 0;
+        }
+
+        .preview-cardlet {
+            height: 84px;
+        }
+
+        .preview-dock {
+            height: 70px;
+        }
+
+        .section {
+            margin-top: 26px;
+            padding: 28px;
+            border-radius: 34px;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .section-head h2 {
+            margin-top: 8px;
+            font-size: clamp(2rem, 3.8vw, 3rem);
+            letter-spacing: -0.05em;
+        }
+
+        .section-head p {
+            max-width: 34rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 24px;
+        }
+
+        .feature-card {
+            padding: 22px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 180ms ease, border-color 180ms ease;
+        }
+
+        .feature-card h3 {
+            margin-top: 16px;
+            font-size: 1.2rem;
+            letter-spacing: -0.03em;
+        }
+
+        .feature-card p {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        .feature-icon {
+            display: inline-grid;
+            place-items: center;
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            background: var(--accent-soft);
+            color: #d7ecff;
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
 
         footer {
-            margin-top: 100px;
-            padding: 40px 0;
+            padding: 26px 0 12px;
+            color: var(--text-muted);
             text-align: center;
-            border-top: 1px solid var(--border);
-            color: var(--text-dim);
         }
 
-        @media (max-width: 768px) {
-            .hero { padding: 60px 0; }
-            .btn { width: 100%; justify-content: center; }
+        @media (max-width: 980px) {
+            .hero,
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-meta {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .container {
+                width: min(100% - 28px, 1200px);
+            }
+
+            .nav {
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: center;
+                padding: 16px 0;
+            }
+
+            .nav-actions,
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .hero-copy,
+            .hero-preview,
+            .section {
+                padding: 22px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="glow-bg"></div>
-    
-    <nav>
-        <div class="logo">🔗 Local<span>Bridge</span></div>
-        <a href="https://github.com/javex-12/localbridge" class="btn btn-secondary" style="padding: 10px 20px; font-size: 0.9rem;">GitHub</a>
-    </nav>
+    <div class="mesh mesh-one"></div>
+    <div class="mesh mesh-two"></div>
+
+    <header>
+        <div class="container nav">
+            <div class="brand">
+                <div class="traffic-lights" aria-hidden="true">
+                    <span class="light close"></span>
+                    <span class="light minimize"></span>
+                    <span class="light expand"></span>
+                </div>
+                <div class="brand-copy">
+                    <span>Local Transfer Suite</span>
+                    <strong>LocalBridge</strong>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <a class="nav-btn" href="https://github.com/javex-12/localbridge">GitHub</a>
+                <a class="nav-btn" href="https://github.com/javex-12/localbridge/releases">Desktop Build</a>
+            </div>
+        </div>
+    </header>
 
     <main class="container">
         <section class="hero">
-            <h1>The fastest bridge to your files.</h1>
-            <p>Skip the cloud. Skip the cables. Transfer files at pure hardware speeds between your laptop and phone, 100% offline.</p>
-            
-            <div class="actions">
-                <!-- Points to GitHub Releases for laptop version -->
-                <a href="https://github.com/javex-12/localbridge/releases" class="btn btn-primary">
-                    <span>💻 Download for Laptop</span>
-                </a>
-                <button id="install-btn" class="btn btn-secondary">
-                    <span>📱 Install Phone App</span>
-                </button>
+            <div class="hero-copy glass">
+                <span class="eyebrow">Private, Local, Fast</span>
+                <h1>Mac-style local transfer for desktop and phone.</h1>
+                <p>LocalBridge pairs a desktop file browser with a mobile PWA so you can move through folders, fetch files, and upload back to the machine without cloud services, account friction, or app-store overhead.</p>
+
+                <div class="hero-actions">
+                    <a href="https://github.com/javex-12/localbridge/releases" class="hero-btn hero-btn-primary">Download Desktop App</a>
+                    <button id="install-btn" class="hero-btn hero-btn-secondary">Install Mobile PWA</button>
+                </div>
+
+                <div class="hero-meta">
+                    <article class="meta-card">
+                        <span class="eyebrow">Transport</span>
+                        <strong>Local network only</strong>
+                        <p>No relay server between your laptop and phone.</p>
+                    </article>
+                    <article class="meta-card">
+                        <span class="eyebrow">Desktop</span>
+                        <strong>Tauri + Rust core</strong>
+                        <p>Native desktop shell with direct filesystem access.</p>
+                    </article>
+                    <article class="meta-card">
+                        <span class="eyebrow">Phone</span>
+                        <strong>PWA install flow</strong>
+                        <p>Browse and upload from a home-screen app.</p>
+                    </article>
+                </div>
             </div>
+
+            <aside class="hero-preview glass">
+                <div class="preview-stack">
+                    <article class="preview-card">
+                        <span class="eyebrow">Desktop View</span>
+                        <div class="preview-window">
+                            <div class="preview-shell">
+                                <div class="preview-toolbar"></div>
+                                <div class="preview-grid">
+                                    <div class="preview-column"></div>
+                                    <div style="display:grid; gap:12px;">
+                                        <div class="preview-cardlet"></div>
+                                        <div class="preview-cardlet"></div>
+                                        <div class="preview-cardlet"></div>
+                                    </div>
+                                </div>
+                                <div class="preview-dock"></div>
+                            </div>
+                        </div>
+                    </article>
+                    <article class="preview-card">
+                        <span class="eyebrow">Mobile View</span>
+                        <p style="margin-top: 12px; color: var(--text-secondary); line-height: 1.55;">Pair with QR, browse folders, filter current files, and upload directly back into the destination directory.</p>
+                    </article>
+                </div>
+            </aside>
         </section>
 
-        <div class="steps">
-            <div class="step-card">
-                <div class="step-icon">⚡</div>
-                <h3>Zero Latency</h3>
-                <p>Built on Rust for maximum performance. Uses your local network bandwidth, not your data plan.</p>
+        <section class="section glass">
+            <div class="section-head">
+                <div>
+                    <span class="eyebrow">Experience</span>
+                    <h2>Everything stays on one polished local workflow.</h2>
+                </div>
+                <p>The redesign aligns all entry points around the same macOS-inspired glass UI: clearer pairing, stronger navigation hierarchy, real transfer visibility, and fewer dead controls.</p>
             </div>
-            <div class="step-card">
-                <div class="step-icon">🛡️</div>
-                <h3>100% Private</h3>
-                <p>Your data never leaves your room. No cloud servers, no trackers, no middleman.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-icon">📱</div>
-                <h3>Multi-Platform</h3>
-                <p>One desktop app, any phone. The PWA works instantly on iOS and Android without an app store.</p>
-            </div>
-        </div>
 
-        <section id="matrix" style="margin-top: 100px; background: var(--glass); border: 1px solid var(--border); border-radius: 30px; padding: 40px; text-align: left;">
-            <h2 style="margin-bottom: 30px; text-align: center;">Software Matrix</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px;">
-                <div>
-                    <h4 style="color: var(--accent); margin-bottom: 10px;">💻 Laptop Core</h4>
-                    <p style="font-size: 0.9rem; color: var(--text-dim);">The engine that powers the bridge. Install it once on your PC/Mac to enable local pairing.</p>
-                    <ul style="margin-top: 15px; font-size: 0.8rem; color: var(--text-dim); list-style: none;">
-                        <li>• System-level file access</li>
-                        <li>• Auto-hotspot generation</li>
-                        <li>• High-speed Axum server</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 style="color: #34c759; margin-bottom: 10px;">📲 Mobile PWA</h4>
-                    <p style="font-size: 0.9rem; color: var(--text-dim);">Your remote gateway. Works offline once installed via Safari/Chrome. No App Store needed.</p>
-                    <ul style="margin-top: 15px; font-size: 0.8rem; color: var(--text-dim); list-style: none;">
-                        <li>• Zero-install footprint</li>
-                        <li>• Biometric hardware link</li>
-                        <li>• Full system integration</li>
-                    </ul>
-                </div>
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <div class="feature-icon">01</div>
+                    <h3>Desktop command center</h3>
+                    <p>A structured sidebar, live QR pairing area, working view modes, path navigation, and transfer activity that actually reads like a desktop app.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon">02</div>
+                    <h3>Mobile browser and uploads</h3>
+                    <p>The PWA now supports scan-to-pair, current-folder filtering, pane switching, live upload progress, and session reset without breaking the browsing flow.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon">03</div>
+                    <h3>Consistent visual system</h3>
+                    <p>Shared glass surfaces, window chrome, structured spacing, and purposeful contrast replace the previous “unstyled app” look across the whole product.</p>
+                </article>
             </div>
         </section>
     </main>
 
-    <footer>
-        <p>© 2026 LocalBridge — Built for Speed. Built for Privacy.</p>
-    </footer>
+    <footer class="container">LocalBridge runs across your local network. No cloud relay required.</footer>
 
     <script>
         let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
+
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredPrompt = event;
         });
 
         document.getElementById('install-btn').addEventListener('click', async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
+                await deferredPrompt.userChoice;
                 deferredPrompt = null;
-            } else {
-                // Fallback to navigating to the PWA page
-                window.location.href = '/pwa/index.html';
+                return;
             }
+
+            window.location.href = 'pwa/index.html';
         });
+
+        gsap.from('.hero-copy', { duration: 1, y: 24, opacity: 0, ease: 'expo.out' });
+        gsap.from('.hero-preview', { duration: 1.1, y: 24, opacity: 0, ease: 'expo.out', delay: 0.1 });
+        gsap.from('.feature-card', { duration: 0.8, y: 24, opacity: 0, ease: 'power3.out', stagger: 0.08, delay: 0.25 });
     </script>
 </body>
 </html>

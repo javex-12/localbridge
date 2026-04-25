@@ -8,49 +8,159 @@
 </head>
 <body>
     <div id="app">
-        <aside id="sidebar">
-            <div class="logo">
-                <h1>🔗 LocalBridge</h1>
-            </div>
-            
-            <div id="qr-container">
-                <div id="qr-code"></div>
-                <p>Scan with your phone to connect</p>
-            </div>
+        <div class="orb orb-one"></div>
+        <div class="orb orb-two"></div>
+        <div class="desktop-shell">
+            <aside class="sidebar glass-panel">
+                <div class="brand-block">
+                    <div class="traffic-lights" aria-hidden="true">
+                        <span class="light close"></span>
+                        <span class="light minimize"></span>
+                        <span class="light expand"></span>
+                    </div>
+                    <p class="eyebrow">Offline File Bridge</p>
+                    <h1>LocalBridge</h1>
+                    <p class="brand-copy">A polished local transfer station for pairing your desktop workspace with the mobile PWA.</p>
+                </div>
 
-            <div id="status-panel">
-                <div class="status-item">
-                    <span id="network-badge" class="badge">Checking...</span>
-                </div>
-                <div class="status-item">
-                    <span id="connection-status">📱 No device connected</span>
-                </div>
-            </div>
-        </aside>
+                <section class="qr-card">
+                    <div class="section-head">
+                        <span class="section-label">Pairing QR</span>
+                        <span class="status-badge status-badge-live">Ready</span>
+                    </div>
+                    <div id="qr-code" class="qr-frame" aria-label="Pairing QR code"></div>
+                    <p class="qr-caption">Scan from your phone to browse this machine and send files back into the current folder.</p>
+                </section>
 
-        <main id="main-content">
-            <header>
-                <div class="breadcrumb">
-                    <span id="current-path">/</span>
-                </div>
-                <div class="actions">
-                    <button id="btn-grid" title="Grid View">🔲</button>
-                    <button id="btn-list" title="List View">≡</button>
-                    <input type="text" id="search-input" placeholder="Search files...">
-                </div>
-            </header>
+                <section class="network-card">
+                    <div class="section-head">
+                        <span class="section-label">Session</span>
+                        <span id="connection-status" class="status-badge">Waiting for phone</span>
+                    </div>
+                    <dl class="meta-list">
+                        <div>
+                            <dt>Network</dt>
+                            <dd id="network-badge">Checking...</dd>
+                        </div>
+                        <div>
+                            <dt>Mode</dt>
+                            <dd id="network-mode">Detecting</dd>
+                        </div>
+                        <div>
+                            <dt>Address</dt>
+                            <dd id="network-address">-</dd>
+                        </div>
+                        <div>
+                            <dt>Workspace</dt>
+                            <dd id="workspace-path">-</dd>
+                        </div>
+                    </dl>
+                </section>
 
-            <div id="file-browser" class="grid-view">
-                <!-- Files will be injected here -->
-            </div>
-
-            <section id="transfer-zone">
-                <h3>──── TRANSFERS ────</h3>
-                <div id="transfer-list">
-                    <!-- Active transfers -->
+                <div class="sidebar-actions">
+                    <button id="btn-home" class="sidebar-btn sidebar-btn-primary">Home Folder</button>
+                    <button id="btn-refresh" class="sidebar-btn">Refresh</button>
                 </div>
-            </section>
-        </main>
+            </aside>
+
+            <main class="workspace">
+                <header class="workspace-toolbar glass-panel">
+                    <div class="toolbar-group">
+                        <button id="btn-back" class="icon-btn" aria-label="Go to parent folder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 18l-6-6 6-6"></path>
+                            </svg>
+                        </button>
+                        <div class="path-wrap">
+                            <span class="toolbar-label">Current location</span>
+                            <span id="current-path" class="path-pill">/</span>
+                        </div>
+                    </div>
+
+                    <div class="toolbar-group toolbar-group-end">
+                        <label class="search-wrap" for="search-input">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <path d="M20 20l-3.5-3.5"></path>
+                            </svg>
+                            <input type="text" id="search-input" placeholder="Search this folder">
+                        </label>
+                        <div class="view-switch" role="group" aria-label="View mode">
+                            <button id="btn-grid" class="view-btn is-active" aria-label="Grid view">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="4" y="4" width="6" height="6" rx="1.5"></rect>
+                                    <rect x="14" y="4" width="6" height="6" rx="1.5"></rect>
+                                    <rect x="4" y="14" width="6" height="6" rx="1.5"></rect>
+                                    <rect x="14" y="14" width="6" height="6" rx="1.5"></rect>
+                                </svg>
+                            </button>
+                            <button id="btn-list" class="view-btn" aria-label="List view">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M8 6h12"></path>
+                                    <path d="M8 12h12"></path>
+                                    <path d="M8 18h12"></path>
+                                    <path d="M4 6h.01"></path>
+                                    <path d="M4 12h.01"></path>
+                                    <path d="M4 18h.01"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <section class="overview-grid">
+                    <article class="overview-card glass-panel">
+                        <span class="overview-label">Connection</span>
+                        <strong id="hero-network">Preparing local link</strong>
+                        <p id="hero-hint">Desktop host is generating the pairing session.</p>
+                    </article>
+                    <article class="overview-card glass-panel">
+                        <span class="overview-label">Folder contents</span>
+                        <strong id="file-count">0 items</strong>
+                        <p id="file-summary">Browse local folders and surface files to the phone.</p>
+                    </article>
+                    <article class="overview-card glass-panel">
+                        <span class="overview-label">Transfer activity</span>
+                        <strong id="transfer-count">0 transfers</strong>
+                        <p id="transfer-summary">Incoming uploads from the mobile app appear here live.</p>
+                    </article>
+                </section>
+
+                <section class="browser-shell glass-panel">
+                    <div class="browser-header">
+                        <div>
+                            <p class="section-label">Workspace browser</p>
+                            <h2 id="current-dir-label">Home</h2>
+                            <p id="browser-caption" class="browser-caption">Folders open in place. Files remain available to the mobile client through the current session.</p>
+                        </div>
+                        <button id="btn-clear-search" class="ghost-btn hidden">Clear search</button>
+                    </div>
+
+                    <div id="file-browser" class="file-browser grid-view"></div>
+
+                    <div id="empty-state" class="empty-state hidden">
+                        <h3>No matching files</h3>
+                        <p>Adjust the search term or switch to another folder.</p>
+                    </div>
+                </section>
+
+                <section id="transfer-zone" class="transfer-panel glass-panel">
+                    <div class="transfer-header">
+                        <div>
+                            <p class="section-label">Live transfers</p>
+                            <h2>Upload activity</h2>
+                        </div>
+                        <span class="transfer-note">Desktop receives progress from the Rust server in real time.</span>
+                    </div>
+                    <div id="transfer-list" class="transfer-list">
+                        <div class="transfer-empty">
+                            <strong>No transfers yet</strong>
+                            <p>Upload from the phone and progress will appear here.</p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
     </div>
     <script src="app.js" type="module"></script>
 </body>

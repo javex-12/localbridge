@@ -3,99 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>LocalBridge Elite</title>
-    <link rel="stylesheet" href="style.css">
+    <title>LocalBridge Mobile</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
     <script src="gsap.js"></script>
+    <script src="jsQR.js"></script>
 </head>
 <body>
     <div id="app">
-        <!-- GPU Accelerated Background -->
-        <canvas id="aura-canvas"></canvas>
+        <div class="mesh mesh-one"></div>
+        <div class="mesh mesh-two"></div>
 
-        <!-- Dynamic View Container -->
-        <div id="view-viewport">
-            <!-- Connection Workspace -->
-            <section id="connect-screen" class="view">
-                <div class="glass-window" id="setup-window">
-                    <div class="window-chrome">
-                        <div class="controls">
-                            <span class="dot close"></span>
-                            <span class="dot minimize"></span>
-                            <span class="dot expand"></span>
-                        </div>
-                        <div class="window-title">Link Workstation</div>
+        <section id="connect-screen" class="screen">
+            <div id="connect-window" class="connect-window glass-panel">
+                <div class="window-bar">
+                    <div class="traffic-lights" aria-hidden="true">
+                        <span class="light close"></span>
+                        <span class="light minimize"></span>
+                        <span class="light expand"></span>
                     </div>
-                    
-                    <div class="window-body">
-                        <div class="pro-scanner">
-                            <video id="scanner-video" playsinline></video>
-                            <div class="scan-beam"></div>
-                            <div class="scan-corners"></div>
-                        </div>
-                        
-                        <h2 class="hero-text">Establish Secure Bridge</h2>
-                        <p class="sub-text">Point camera at the QR code on your workstation</p>
-                        
-                        <div class="button-stack">
-                            <button id="btn-scan-start" class="pro-btn primary">Initialize Link</button>
-                        </div>
-                    </div>
+                    <span class="window-title">Pairing Assistant</span>
                 </div>
 
-                <div class="status-dock glass-effect">
-                    <div class="status-group" id="pill-wifi">
-                        <span class="status-dot"></span>
-                        <span class="status-label">Network</span>
+                <div class="connect-body">
+                    <div class="app-mark">LB</div>
+                    <p class="eyebrow">Mobile Bridge</p>
+                    <h1>Link your workstation</h1>
+                    <p class="lead">Scan the QR shown on desktop. After pairing, you can browse the workstation and upload files straight back into the current folder.</p>
+
+                    <div class="scanner-shell">
+                        <video id="scanner-video" playsinline></video>
+                        <div class="scanner-overlay"></div>
+                        <div class="scanner-line"></div>
+                        <div class="scanner-corners" aria-hidden="true">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
                     </div>
-                    <div class="status-divider"></div>
-                    <div class="status-group" id="pill-camera">
-                        <span class="status-dot"></span>
-                        <span class="status-label">Camera</span>
+
+                    <div class="setup-pills">
+                        <div id="pill-network" class="setup-pill">Network status</div>
+                        <div id="pill-camera" class="setup-pill">Camera check</div>
+                    </div>
+
+                    <button id="btn-scan-start" class="primary-btn">Start Camera Scan</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="browser-screen" class="screen hidden">
+            <header class="topbar glass-panel">
+                <button id="btn-back-dir" class="round-btn" aria-label="Go to parent folder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 18l-6-6 6-6"></path>
+                    </svg>
+                </button>
+
+                <div class="topbar-copy">
+                    <p class="eyebrow">Remote Workspace</p>
+                    <h2 id="current-dir-label">Workstation</h2>
+                    <p id="session-label" class="session-label">Connected locally</p>
+                </div>
+
+                <button id="btn-upload-pro" class="round-btn round-btn-accent" aria-label="Upload files">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                    </svg>
+                </button>
+            </header>
+
+            <section class="toolbar glass-panel">
+                <div id="current-path-mobile" class="path-chip">/</div>
+                <label class="search-field" for="mobile-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <path d="M20 20l-3.5-3.5"></path>
+                    </svg>
+                    <input id="mobile-search" type="text" placeholder="Filter this folder">
+                </label>
+            </section>
+
+            <section id="browse-pane" class="pane">
+                <div class="pane-head">
+                    <div>
+                        <p class="eyebrow">Browse</p>
+                        <h3 id="browse-count">0 items</h3>
+                    </div>
+                    <button id="btn-clear-mobile-search" class="ghost-btn hidden">Clear search</button>
+                </div>
+                <div id="file-list" class="file-grid"></div>
+                <div id="browser-empty" class="empty-state hidden">
+                    <h3>No files found</h3>
+                    <p>Try a different folder or clear the current filter.</p>
+                </div>
+            </section>
+
+            <section id="transfers-pane" class="pane hidden">
+                <div class="pane-head">
+                    <div>
+                        <p class="eyebrow">Transfers</p>
+                        <h3 id="transfer-count-mobile">0 uploads</h3>
+                    </div>
+                </div>
+                <div id="mobile-transfer-list" class="transfer-list">
+                    <div class="transfer-empty">
+                        <strong>No uploads yet</strong>
+                        <p>Use the plus button to send files to the desktop.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- File Explorer Workspace -->
-            <section id="browser-screen" class="view hidden">
-                <div class="pro-navbar glass-effect">
-                    <div class="nav-content">
-                        <button id="btn-back-dir" class="icon-btn">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-                        </button>
-                        <h1 id="current-dir-label">Workstation</h1>
-                        <button id="btn-upload-pro" class="icon-btn accent">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                        </button>
+            <section id="settings-pane" class="pane hidden">
+                <div class="pane-head">
+                    <div>
+                        <p class="eyebrow">Session</p>
+                        <h3>Connection details</h3>
                     </div>
                 </div>
 
-                <div id="file-list" class="pro-explorer">
-                    <!-- Cards cascade here -->
-                </div>
+                <div class="settings-stack">
+                    <article class="settings-card glass-panel glass-panel-inner">
+                        <span class="settings-label">Desktop host</span>
+                        <strong id="settings-host">Not connected</strong>
+                        <p>Your phone talks directly to the LocalBridge desktop server on the local network.</p>
+                    </article>
 
-                <nav class="main-dock glass-effect">
-                    <div class="dock-nav-item active">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        <span>Files</span>
+                    <article class="settings-card glass-panel glass-panel-inner">
+                        <span class="settings-label">Current folder</span>
+                        <strong id="settings-folder">/</strong>
+                        <p>Uploads land in the folder you are currently browsing on the phone.</p>
+                    </article>
+
+                    <div class="settings-actions">
+                        <button id="btn-rescan" class="primary-btn">Scan New Desktop</button>
                     </div>
-                    <div class="dock-nav-item">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                        <span>Live</span>
-                    </div>
-                    <div class="dock-nav-item">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                        <span>System</span>
-                    </div>
-                </nav>
+                </div>
             </section>
-        </div>
 
-        <!-- System Overlays -->
+            <nav class="dock glass-panel" aria-label="Primary">
+                <button class="dock-item is-active" data-pane="browse">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+                        <path d="M3 10h18"></path>
+                    </svg>
+                    <span>Browse</span>
+                </button>
+                <button class="dock-item" data-pane="transfers">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3v12"></path>
+                        <path d="M7 10l5 5 5-5"></path>
+                        <path d="M5 21h14"></path>
+                    </svg>
+                    <span>Transfers</span>
+                </button>
+                <button class="dock-item" data-pane="settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.82-.34 1.7 1.7 0 0 0-1 1.53V22a2 2 0 0 1-4 0v-.09a1.7 1.7 0 0 0-1-1.53 1.7 1.7 0 0 0-1.82.34l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.53-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.53V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.53 1.7 1.7 0 0 0 1.82-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.14.5.56.87 1.08.96H21a2 2 0 0 1 0 4h-.52c-.52.09-.94.46-1.08.96z"></path>
+                    </svg>
+                    <span>Session</span>
+                </button>
+            </nav>
+        </section>
+
+        <input id="file-input" type="file" multiple hidden>
         <canvas id="scanner-canvas" hidden></canvas>
     </div>
 
-    <script src="jsQR.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

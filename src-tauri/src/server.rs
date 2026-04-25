@@ -156,11 +156,19 @@ async fn upload_file(
                 // Emit to laptop UI
                 let _ = state.app_handle.emit("transfer-progress", serde_json::json!({
                     "id": transfer_id,
+                    "filename": file_name.clone(),
                     "transferred": transferred,
+                    "status": "transferring",
                 }));
             }
         }
         mark_done(&transfer_id);
+        let _ = state.app_handle.emit("transfer-progress", serde_json::json!({
+            "id": transfer_id,
+            "filename": file_name,
+            "transferred": transferred,
+            "status": "done",
+        }));
     }
 
     StatusCode::OK.into_response()
