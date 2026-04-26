@@ -61,6 +61,7 @@ pub async fn start_server(app_handle: AppHandle, port: u16) {
         .route("/api/thumbnail", get(get_thumb))
         .route("/api/upload", post(upload_file))
         .route("/ws", get(ws_handler))
+        .fallback_service(tower_http::services::ServeDir::new("../pwa"))
         .layer(cors)
         .layer(DefaultBodyLimit::max(10 * 1024 * 1024 * 1024)) // 10GB limit
         .with_state(state);
