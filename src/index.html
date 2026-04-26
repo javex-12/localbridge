@@ -147,12 +147,12 @@
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <span class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Workstation IP</span>
-                            <span id="network-address" class="text-lg font-black text-white font-mono tracking-tighter">--</span>
+                            <span class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Workstation Address</span>
+                            <span id="network-address" class="text-sm font-black text-white font-mono tracking-tighter">--</span>
                         </div>
                         <div>
-                            <span class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Security Token</span>
-                            <span id="security-token-display" class="text-sm font-black text-blue-500 font-mono tracking-widest italic">--</span>
+                            <span class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Pairing Code</span>
+                            <span id="pairing-code-sidebar" class="text-sm font-black text-blue-500 font-mono tracking-widest italic">------</span>
                         </div>
                     </div>
                 </div>
@@ -181,7 +181,10 @@
                 <div class="flex items-center gap-8">
                     <div class="relative">
                         <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"></i>
-                        <input type="text" id="search-input" placeholder="Quick find assets..." class="bg-white/5 border border-white/5 rounded-xl pl-11 pr-5 py-2.5 text-[13px] font-medium w-56 focus:w-80 focus:ring-2 ring-blue-500/20 outline-none transition-all placeholder:text-slate-600">
+                        <input type="text" id="search-input" placeholder="Quick find assets..." class="bg-white/5 border border-white/5 rounded-xl pl-11 pr-12 py-2.5 text-[13px] font-medium w-56 focus:w-80 focus:ring-2 ring-blue-500/20 outline-none transition-all placeholder:text-slate-600">
+                        <button id="btn-clear-search" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white hidden">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
                     </div>
                     <div class="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
                         <button id="btn-grid" class="p-2 rounded-lg bg-blue-600 text-white shadow-lg"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
@@ -252,9 +255,19 @@
                 <h2 class="text-2xl font-extrabold tracking-tighter text-white mb-2 italic uppercase">Bridge Link</h2>
                 <p class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Scan with Mobile Console</p>
             </div>
-            <div class="bg-white p-4 rounded-3xl mb-10 shadow-inner flex items-center justify-center overflow-hidden">
+            <div class="bg-white p-4 rounded-3xl mb-6 shadow-inner flex items-center justify-center overflow-hidden">
                 <div id="qr-code" class="w-full"></div>
             </div>
+            
+            <div class="mb-10">
+                <p class="text-slate-500 text-[9px] font-extrabold uppercase tracking-[0.2em] text-center mb-4">Or use unique code</p>
+                <div class="flex justify-center gap-2">
+                    <div id="pairing-code-display" class="bg-blue-600/10 border border-blue-500/20 rounded-2xl px-8 py-4 text-3xl font-black text-blue-500 tracking-[0.3em] font-mono shadow-sm italic">
+                        ------
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center gap-4 p-5 bg-blue-600/10 border border-blue-500/20 rounded-2xl">
                 <i data-lucide="shield-check" class="w-5 h-5 text-blue-500 flex-shrink-0"></i>
                 <p class="text-[10px] text-blue-400 font-bold leading-relaxed uppercase tracking-tight">Encryption: AES-256 <br>Network: Local Area Handshake</p>

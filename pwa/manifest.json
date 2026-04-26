@@ -1,16 +1,28 @@
 {
-  "name": "LocalBridge Mobile",
+  "name": "LocalBridge",
   "short_name": "LocalBridge",
-  "start_url": "/pwa/index.html",
+  "description": "Offline peer-to-peer file transfer. No internet. No cloud. Pure speed.",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#030712",
-  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "background_color": "#080d1c",
+  "theme_color": "#1d6cff",
+  "categories": ["utilities", "productivity"],
   "icons": [
     {
-      "src": "/pwa/icon.svg",
-      "sizes": "192x192 512x512",
+      "src": "./icon.svg",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }

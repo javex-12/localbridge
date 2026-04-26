@@ -35,6 +35,27 @@ pub fn get_kind(path: &Path) -> String {
 }
 
 pub fn list_directory(dir_path: &str) -> Result<Vec<FileEntry>, String> {
+    if dir_path == "/" || dir_path.is_empty() {
+        #[cfg(target_os = "windows")]
+        {
+            let mut drives = Vec::new();
+            for letter in b'A'..=b'Z' {
+                let drive = format!("{}:\\", letter as char);
+                if Path::new(&drive).exists() {
+                    drives.push(FileEntry {
+                        name: drive.clone(),
+                        path: drive,
+                        kind: "folder".to_string(),
+                        size: 0,
+                        modified: "".to_string(),
+                        thumbnail: None,
+                    });
+                }
+            }
+            return Ok(drives);
+        }
+    }
+
     let path = Path::new(dir_path);
     if !path.exists() {
         return Err("Path does not exist".to_string());

@@ -11,7 +11,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="jsQR.js"></script>
-    <script src="gsap.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
@@ -168,6 +167,16 @@
                     <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 block">Target Path</span>
                     <strong id="settings-folder" class="text-slate-300 text-xs font-mono italic block break-all">/</strong>
                 </div>
+                
+                <div class="pt-6">
+                    <h3 class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 px-1">Manual Override</h3>
+                    <div class="space-y-3">
+                        <input id="manual-ip" type="text" placeholder="Workstation IP (e.g. 192.168.1.5)" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-colors">
+                        <input id="manual-token" type="text" placeholder="Security Token" class="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:border-blue-500 transition-colors">
+                        <button id="btn-manual-link" class="w-full py-4 rounded-2xl bg-blue-600 text-white font-extrabold text-[10px] uppercase tracking-widest active:scale-95 transition-transform">Apply Configuration</button>
+                    </div>
+                </div>
+
                 <button id="btn-rescan" class="w-full py-5 rounded-[24px] bg-rose-500/10 text-rose-500 border border-rose-500/20 font-extrabold text-xs uppercase tracking-widest mt-8 active:bg-rose-500/20 transition-all">Terminate Session</button>
             </div>
         </section>
@@ -211,8 +220,32 @@
         </div>
         <div class="p-10 bg-black">
             <button id="btn-scan-start" class="w-full py-5 rounded-[24px] bg-blue-600 text-white font-extrabold text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all">Initialize Scanner</button>
+            <button id="btn-show-code-input" class="w-full py-5 mt-4 rounded-[24px] bg-white/5 text-slate-300 border border-white/10 font-extrabold text-sm uppercase tracking-widest active:bg-white/10 transition-all">Use Pairing Code</button>
             <button id="btn-close-scanner" class="w-full py-4 mt-2 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest active:text-white transition-colors">Cancel Handshake</button>
         </div>
+    </section>
+
+    <!-- ═══ PAIRING CODE MODAL ═══ -->
+    <section id="code-screen" class="fixed inset-0 z-[110] bg-black/98 backdrop-blur-2xl hidden flex flex-col items-center justify-center px-10">
+        <div class="text-center mb-12">
+            <h2 class="text-2xl font-extrabold text-white italic uppercase mb-2">Manual Link</h2>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Enter the 6-digit workstation code</p>
+        </div>
+        
+        <div class="flex gap-2 mb-12">
+            <input type="number" maxlength="1" class="code-input w-12 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-2xl font-black text-blue-500 focus:border-blue-500 outline-none" placeholder="-">
+            <input type="number" maxlength="1" class="code-input w-12 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-2xl font-black text-blue-500 focus:border-blue-500 outline-none" placeholder="-">
+            <input type="number" maxlength="1" class="code-input w-12 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-2xl font-black text-blue-500 focus:border-blue-500 outline-none" placeholder="-">
+            <span class="w-2"></span>
+            <input type="number" maxlength="1" class="code-input w-12 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-2xl font-black text-blue-500 focus:border-blue-500 outline-none" placeholder="-">
+            <input type="number" maxlength="1" class="code-input w-12 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-2xl font-black text-blue-500 focus:border-blue-500 outline-none" placeholder="-">
+            <input type="number" maxlength="1" class="code-input w-12 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-2xl font-black text-blue-500 focus:border-blue-500 outline-none" placeholder="-">
+        </div>
+
+        <div id="pairing-status" class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest mb-12 opacity-0">Searching Workstation...</div>
+
+        <button id="btn-verify-code" class="w-full py-5 rounded-[24px] bg-blue-600 text-white font-extrabold text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all">Link Now</button>
+        <button id="btn-close-code" class="w-full py-4 mt-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest active:text-white transition-colors">Back to Scanner</button>
     </section>
 
     <!-- ═══ UPLOAD TOAST ═══ -->

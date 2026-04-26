@@ -56,6 +56,7 @@ pub async fn start_server(app_handle: AppHandle, port: u16) {
 
     let app = Router::new()
         .route("/api/qr", get(get_qr))
+        .route("/api/verify-code", get(verify_code))
         .route("/api/files", get(get_files))
         .route("/api/file", get(download_file))
         .route("/api/thumbnail", get(get_thumb))
@@ -71,9 +72,29 @@ pub async fn start_server(app_handle: AppHandle, port: u16) {
     axum::serve(listener, app).await.unwrap();
 }
 
+#[derive(Deserialize)]
+struct CodeQuery {
+    code: String,
+}
+
 async fn get_qr() -> impl IntoResponse {
     let payload = generate_qr_payload(3000); // Fixed port for now or pass it
     Json(payload)
+}
+
+async fn verify_code(Query(query): Query<CodeQuery>) -> impl IntoResponse {
+    match crate::auth::validate_pairing_code(&query.code) {
+        Some(token) => {
+            let network = crate::network::detect_network();
+            Json(serde_json::json!({
+                "status": "ok",
+                "token": token,
+                "ip": network.ip,
+                "port": 3000
+            })).into_response()
+        }
+        None => (StatusCode::UNAUTHORIZED, "Invalid pairing code").into_response(),
+    }
 }
 
 async fn get_files(Query(query): Query<PathQuery>) -> impl IntoResponse {

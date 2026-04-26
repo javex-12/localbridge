@@ -1,8 +1,7 @@
-const { invoke } = window.__TAURI__.core;
-const { listen } = window.__TAURI__.event;
+const { invoke } = window.__TAURI__ ? window.__TAURI__.core : { invoke: () => {} };
+const { listen } = window.__TAURI__ ? window.__TAURI__.event : { listen: () => {} };
 
 const qrCodeEl = document.getElementById('qr-code');
-const networkBadge = document.getElementById('network-badge');
 const networkAddressEl = document.getElementById('network-address');
 const connectionStatusEl = document.getElementById('connection-status');
 const fileBrowser = document.getElementById('file-browser');
@@ -10,18 +9,16 @@ const currentPathEl = document.getElementById('current-path');
 const searchInput = document.getElementById('search-input');
 const transferList = document.getElementById('transfer-list');
 const emptyState = document.getElementById('empty-state');
-const heroNetworkEl = document.getElementById('hero-network');
-const heroHintEl = document.getElementById('hero-hint');
 const fileCountEl = document.getElementById('file-count');
 const fileSummaryEl = document.getElementById('file-summary');
 const transferCountEl = document.getElementById('transfer-count');
 const transferSummaryEl = document.getElementById('transfer-summary');
-const clearSearchBtn = document.getElementById('btn-clear-search');
 const btnBack = document.getElementById('btn-back');
 const btnHome = document.getElementById('btn-home');
 const btnRefresh = document.getElementById('btn-refresh');
 const btnGrid = document.getElementById('btn-grid');
 const btnList = document.getElementById('btn-list');
+const clearSearchBtn = document.getElementById('btn-clear-search');
 
 let currentPath = '';
 let homePath = '';
@@ -32,19 +29,80 @@ let searchTimer = null;
 let isSearching = false;
 const transfers = new Map();
 
+function setupListeners() {
+    if (btnBack) {
+        btnBack.addEventListener('click', () => {
+            const p = currentPath.split(/[\\/]/).filter(Boolean);
+            p.pop();
+            loadFiles(p.length === 0 ? '/' : '/' + p.join('/'));
+        });
+    }
+    if (btnHome) btnHome.addEventListener('click', () => loadFiles(homePath));
+    if (btnRefresh) btnRefresh.addEventListener('click', () => loadFiles(currentPath));
+    if (btnGrid) btnGrid.addEventListener('click', () => setView('grid'));
+    if (btnList) btnList.addEventListener('click', () => setView('list'));
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', triggerSearch);
+    }
+    
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => { 
+            if (searchInput) searchInput.value = ''; 
+            triggerSearch(); 
+        });
+    }
+
+    const btnShowQr = document.getElementById('btn-show-qr');
+    const btnCloseQr = document.getElementById('btn-close-qr');
+    const qrModal = document.getElementById('qr-modal');
+    const modalBackdrop = document.querySelector('.modal-backdrop');
+
+    if (btnShowQr && qrModal) {
+        btnShowQr.addEventListener('click', () => qrModal.classList.remove('hidden'));
+    }
+    if (btnCloseQr && qrModal) {
+        btnCloseQr.addEventListener('click', () => qrModal.classList.add('hidden'));
+    }
+    if (modalBackdrop && qrModal) {
+        modalBackdrop.addEventListener('click', () => qrModal.classList.add('hidden'));
+    }
+}
+
 async function init() {
     try {
-        homePath = await invoke('get_home_dir');
+        console.log("Initializing Workstation...");
+        setupListeners();
+        
+        homePath = "/"; 
         currentPath = homePath;
         updatePathDisplay();
+
+        // Safety check for Tauri global
+        if (!window.__TAURI__) {
+            console.error("Tauri API not found! Are you running in a browser?");
+            if (document.getElementById('hero-hint')) {
+                document.getElementById('hero-hint').textContent = "ERROR: System Bridge Not Found";
+            }
+            return;
+        }
 
         const [info, network] = await Promise.all([
             invoke('get_connection_info'),
             invoke('get_network_status')
         ]);
 
-        qrCodeEl.innerHTML = info.svg;
-        document.getElementById('security-token-display').textContent = info.token;
+        if (qrCodeEl) qrCodeEl.innerHTML = info.svg;
+        
+        const tokenDisp = document.getElementById('security-token-display');
+        if (tokenDisp) tokenDisp.textContent = info.token;
+        
+        const pairDisp = document.getElementById('pairing-code-display');
+        if (pairDisp) pairDisp.textContent = info.pairing_code || '------';
+        
+        const pairSide = document.getElementById('pairing-code-sidebar');
+        if (pairSide) pairSide.textContent = info.pairing_code || '------';
+        
         hydrateNetworkUI(network);
 
         await loadFiles(currentPath);
@@ -52,18 +110,22 @@ async function init() {
             updateTransferUI(event.payload);
         });
     } catch (error) {
-        console.error(error);
-        heroNetworkEl.textContent = 'INIT ERROR';
-        heroHintEl.textContent = 'Backend unreachable';
+        console.error("Initialization Failed:", error);
     }
 }
 
 function hydrateNetworkUI(network) {
     const modeLabel = network.mode === 'hotspot' ? 'Hotspot' : 'Local';
-    networkBadge.textContent = network.ssid || 'Active LAN';
-    networkAddressEl.textContent = network.ip || '--';
-    heroNetworkEl.textContent = `${modeLabel.toUpperCase()} BRIDGE`;
-    heroHintEl.textContent = `Sync Engine Listening on ${network.ip || 'LAN'}`;
+    if (document.getElementById('network-badge')) {
+        document.getElementById('network-badge').textContent = network.ssid || 'Active LAN';
+    }
+    if (networkAddressEl) networkAddressEl.textContent = network.ip || '--';
+    if (document.getElementById('hero-network')) {
+        document.getElementById('hero-network').textContent = `${modeLabel.toUpperCase()} BRIDGE`;
+    }
+    if (document.getElementById('hero-hint')) {
+        document.getElementById('hero-hint').textContent = `Sync Engine Listening on ${network.ip || 'LAN'}`;
+    }
 }
 
 async function loadFiles(path) {
@@ -269,25 +331,4 @@ function escapeHtml(v) { return String(v).replaceAll('&', '&amp;').replaceAll('<
 function basename(path) { return path.split(/[\\/]/).filter(Boolean).pop() || ''; }
 function isRootPath(path) { return path === '/' || !path || path.endsWith(':'); }
 
-btnBack.addEventListener('click', () => {
-    const p = currentPath.split(/[\\/]/).filter(Boolean);
-    p.pop();
-    loadFiles(p.length === 0 ? '/' : '/' + p.join('/'));
-});
-btnHome.addEventListener('click', () => loadFiles(homePath));
-btnRefresh.addEventListener('click', () => loadFiles(currentPath));
-btnGrid.addEventListener('click', () => setView('grid'));
-btnList.addEventListener('click', () => setView('list'));
-searchInput.addEventListener('input', triggerSearch);
-clearSearchBtn.addEventListener('click', () => { searchInput.value = ''; triggerSearch(); });
-
-const btnShowQr = document.getElementById('btn-show-qr');
-const btnCloseQr = document.getElementById('btn-close-qr');
-const qrModal = document.getElementById('qr-modal');
-const modalBackdrop = document.querySelector('.modal-backdrop');
-
-btnShowQr.addEventListener('click', () => qrModal.classList.remove('hidden'));
-btnCloseQr.addEventListener('click', () => qrModal.classList.add('hidden'));
-modalBackdrop.addEventListener('click', () => qrModal.classList.add('hidden'));
-
-init();
+window.addEventListener('DOMContentLoaded', init);

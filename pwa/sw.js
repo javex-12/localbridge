@@ -1,65 +1,76 @@
-const CACHE_NAME = 'localbridge-emerald-v2';
-const CORE_ASSETS = [
+/* ═══════════════════════════════════════════
+   LocalBridge Service Worker
+   Fully offline — zero CDN dependencies
+═══════════════════════════════════════════ */
+
+const CACHE = 'localbridge-v1';
+
+// Only cache LOCAL assets — no CDN garbage
+const ASSETS = [
     './',
     './index.html',
     './app.js',
-    './gsap.js',
     './jsQR.js',
     './manifest.json',
     './icon.svg',
-    'https://cdn.tailwindcss.com',
-    'https://unpkg.com/lucide@latest',
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
+    './sw.js',
 ];
 
-self.addEventListener('install', (event) => {
+/* ── Install: cache all core assets ── */
+self.addEventListener('install', event => {
     self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(CORE_ASSETS);
+        caches.open(CACHE).then(cache => cache.addAll(ASSETS)).catch(err => {
+            console.warn('[SW] Cache install failed:', err);
         })
     );
 });
 
-self.addEventListener('activate', (event) => {
+/* ── Activate: delete old caches ── */
+self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then((keys) => {
-            return Promise.all(
-                keys.map((key) => {
-                    if (key !== CACHE_NAME) return caches.delete(key);
-                })
-            );
-        })
+        caches.keys().then(keys =>
+            Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+        )
     );
-    return self.clients.claim();
+    self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-    // API calls to the desktop server must always go to the network
-    if (event.request.url.includes(':3000/api/')) {
-        return event.respondWith(fetch(event.request).catch(() => {
-            return new Response(JSON.stringify({ error: 'Desktop disconnected' }), {
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }));
+/* ── Fetch strategy ── */
+self.addEventListener('fetch', event => {
+    const url = event.request.url;
+
+    // 1. API calls to the laptop server → ALWAYS network, never cache
+    if (url.includes(':3000/')) {
+        event.respondWith(
+            fetch(event.request).catch(() =>
+                new Response(JSON.stringify({ error: 'Laptop disconnected' }), {
+                    status: 503,
+                    headers: { 'Content-Type': 'application/json' }
+                })
+            )
+        );
+        return;
     }
 
-    // For UI assets, use Cache-First with Network Fallback
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) return cachedResponse;
+    // 2. External URLs (fonts, CDNs) → network only, don't cache
+    if (!url.startsWith(self.location.origin)) {
+        event.respondWith(fetch(event.request).catch(() => new Response('', { status: 408 })));
+        return;
+    }
 
-            return fetch(event.request).then((networkResponse) => {
-                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-                    return networkResponse;
+    // 3. Local app assets → Cache First, fallback to network
+    event.respondWith(
+        caches.match(event.request).then(cached => {
+            if (cached) return cached;
+            return fetch(event.request).then(response => {
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const clone = response.clone();
+                    caches.open(CACHE).then(cache => cache.put(event.request, clone));
                 }
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseToCache);
-                });
-                return networkResponse;
+                return response;
             }).catch(() => {
-                // If both fail and it's a page navigation, return index.html
+                // Offline fallback for navigation
                 if (event.request.mode === 'navigate') {
                     return caches.match('./index.html');
                 }

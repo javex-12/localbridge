@@ -25,10 +25,20 @@ const dom = {
     mobileTransferList:   document.getElementById('mobile-transfer-list'),
     settingsHost:         document.getElementById('settings-host'),
     settingsFolder:       document.getElementById('settings-folder'),
+    manualIp:             document.getElementById('manual-ip'),
+    manualToken:          document.getElementById('manual-token'),
+    btnManualLink:        document.getElementById('btn-manual-link'),
+    btnRescan:            document.getElementById('btn-rescan'),
     btnBackDir:           document.getElementById('btn-back-dir'),
     btnUpload:            document.getElementById('btn-upload-pro'),
     btnScanStart:         document.getElementById('btn-scan-start'),
     btnCloseScanner:      document.getElementById('btn-close-scanner'),
+    btnShowCode:          document.getElementById('btn-show-code-input'),
+    btnCloseCode:         document.getElementById('btn-close-code'),
+    btnVerifyCode:        document.getElementById('btn-verify-code'),
+    codeScreen:           document.getElementById('code-screen'),
+    codeInputs:           document.querySelectorAll('.code-input'),
+    pairingStatus:        document.getElementById('pairing-status'),
     fileInput:            document.getElementById('file-input'),
     scannerVideo:         document.getElementById('scanner-video'),
     scannerCanvas:        document.getElementById('scanner-canvas'),
@@ -49,10 +59,13 @@ const dom = {
 async function init() {
     console.log("LocalBridge: Booting Engine...");
     
-    // Auto-reconnect if hosted on laptop
+    // Auto-reconnect if hosted on laptop or from localStorage
     if (window.location.port === "3000") {
         state.laptopIp = window.location.hostname;
+    } else {
+        state.laptopIp = localStorage.getItem('laptopIp') || '';
     }
+    state.token = localStorage.getItem('connectionToken') || '';
 
     setupListeners();
     refreshIcons();
@@ -60,7 +73,11 @@ async function init() {
     if (state.laptopIp && state.token) {
         const ok = await loadFiles(state.currentPath);
         updateStatusUI(ok);
-        if (ok) setPane('browse');
+        if (ok) {
+            setPane('browse');
+        } else {
+            setPane('home');
+        }
     } else {
         setPane('home');
         updateStatusUI(false);
@@ -74,6 +91,43 @@ function setupListeners() {
 
     if (dom.btnScanStart) dom.btnScanStart.addEventListener('click', startScanner);
     if (dom.btnCloseScanner) dom.btnCloseScanner.addEventListener('click', hideScanner);
+
+    if (dom.btnShowCode) {
+        dom.btnShowCode.addEventListener('click', () => {
+            dom.connectScreen.classList.add('hidden');
+            dom.codeScreen.classList.remove('hidden');
+            dom.codeInputs[0].focus();
+        });
+    }
+
+    if (dom.btnCloseCode) {
+        dom.btnCloseCode.addEventListener('click', () => {
+            dom.codeScreen.classList.add('hidden');
+            dom.connectScreen.classList.remove('hidden');
+        });
+    }
+
+    if (dom.btnVerifyCode) {
+        dom.btnVerifyCode.addEventListener('click', () => {
+            const code = Array.from(dom.codeInputs).map(i => i.value).join('');
+            if (code.length === 6) {
+                startDiscovery(code);
+            }
+        });
+    }
+
+    dom.codeInputs.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+            if (e.target.value && idx < dom.codeInputs.length - 1) {
+                dom.codeInputs[idx + 1].focus();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                dom.codeInputs[idx - 1].focus();
+            }
+        });
+    });
 
     if (dom.btnBackDir) {
         dom.btnBackDir.addEventListener('click', () => {
@@ -90,6 +144,23 @@ function setupListeners() {
             const q = dom.mobileSearch.value.toLowerCase();
             const filtered = state.currentItems.filter(f => f.name.toLowerCase().includes(q));
             renderFileList(filtered);
+        });
+    }
+
+    if (dom.btnManualLink) {
+        dom.btnManualLink.addEventListener('click', () => {
+            const ip = dom.manualIp.value.trim();
+            const token = dom.manualToken.value.trim();
+            if (ip && token) {
+                handlePairing({ ip, token });
+            }
+        });
+    }
+
+    if (dom.btnRescan) {
+        dom.btnRescan.addEventListener('click', () => {
+            localStorage.clear();
+            location.reload();
         });
     }
 
@@ -116,11 +187,13 @@ function updateStatusUI(connected) {
     const dash = dom.dashboardConnect;
     if (!dash) return;
 
+    const displayIp = state.laptopIp || localStorage.getItem('laptopIp') || 'Discovery Mode';
+
     if (connected) {
         dash.innerHTML = `
             <div class="flex-1">
                 <h4 class="font-extrabold text-white text-sm uppercase tracking-wider mb-1">Bridge Linked</h4>
-                <p class="text-[11px] text-blue-400 font-bold italic truncate">${state.laptopIp}</p>
+                <p class="text-[11px] text-blue-400 font-bold italic truncate">${displayIp}</p>
             </div>
             <div class="w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-500 border border-blue-500/20 flex items-center justify-center">
                 <i data-lucide="zap" class="w-6 h-6"></i>
@@ -152,6 +225,9 @@ function setPane(name) {
     });
     refreshIcons();
 }
+
+window.showScanner = showScanner;
+window.setPane = setPane;
 
 function showScanner() {
     if (dom.connectScreen) dom.connectScreen.classList.remove('hidden');
@@ -205,6 +281,97 @@ function stopScanner() {
     if (dom.btnScanStart) dom.btnScanStart.textContent = 'Initialize Scanner';
 }
 
+async function startDiscovery(code) {
+    dom.pairingStatus.textContent = "Broadcasting Signal...";
+    dom.pairingStatus.style.opacity = "1";
+    dom.btnVerifyCode.disabled = true;
+    dom.btnVerifyCode.textContent = "SEARCHING...";
+
+    // 0. Try current hostname first
+    const currentHost = window.location.hostname;
+    if (currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+        const result = await tryIp(currentHost, code);
+        if (result) {
+            handlePairing(result);
+            dom.codeScreen.classList.add('hidden');
+            return;
+        }
+    }
+
+    // 1. Try common subnets
+    const subnets = ['192.168.1', '192.168.0', '192.168.43', '192.168.8', '172.20.10', '10.0.0'];
+    
+    // We'll also try to detect the phone's IP using WebRTC (classic trick)
+    let localIpPrefix = null;
+    try {
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        pc.createDataChannel("");
+        pc.createOffer().then(offer => pc.setLocalDescription(offer));
+        pc.onicecandidate = (ice) => {
+            if (ice && ice.candidate && ice.candidate.candidate) {
+                const ip = ice.candidate.candidate.split(' ')[4];
+                if (ip && ip.includes('.')) {
+                    localIpPrefix = ip.split('.').slice(0, 3).join('.');
+                }
+            }
+        };
+    } catch (e) {}
+
+    // Wait a bit for WebRTC to find something
+    await new Promise(r => setTimeout(r, 500));
+    if (localIpPrefix) subnets.unshift(localIpPrefix);
+
+    let found = false;
+    
+    for (const subnet of subnets) {
+        if (found) break;
+        dom.pairingStatus.textContent = `Scanning ${subnet}.x...`;
+        
+        // Scan 254 IPs in chunks to avoid overwhelming the browser
+        const chunkSize = 32;
+        for (let i = 1; i < 255; i += chunkSize) {
+            if (found) break;
+            const promises = [];
+            for (let j = 0; j < chunkSize && (i + j) < 255; j++) {
+                const ip = `${subnet}.${i + j}`;
+                promises.push(tryIp(ip, code));
+            }
+            const results = await Promise.all(promises);
+            const winner = results.find(r => r);
+            if (winner) {
+                found = true;
+                handlePairing(winner);
+                dom.codeScreen.classList.add('hidden');
+                break;
+            }
+        }
+    }
+
+    if (!found) {
+        dom.pairingStatus.textContent = "Workstation Not Found";
+        dom.btnVerifyCode.disabled = false;
+        dom.btnVerifyCode.textContent = "LINK NOW";
+    }
+}
+
+async function tryIp(ip, code) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 1500); // 1.5s timeout per IP
+    try {
+        const res = await fetch(`http://${ip}:3000/api/verify-code?code=${code}`, {
+            signal: controller.signal,
+            mode: 'cors'
+        });
+        clearTimeout(id);
+        if (res.ok) {
+            return await res.json();
+        }
+    } catch (e) {
+        clearTimeout(id);
+    }
+    return null;
+}
+
 async function handlePairing(data) {
     state.laptopIp = data.ip;
     state.token = data.token;
@@ -219,21 +386,31 @@ async function handlePairing(data) {
 }
 
 async function loadFiles(path) {
-    if (!state.laptopIp || !state.token) return false;
+    if (!state.laptopIp || !state.token || state.laptopIp === 'Discovery Mode') return false;
     state.currentPath = path;
     try {
         const url = `http://${state.laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${state.token}`;
         const res = await fetch(url);
+        if (!res.ok) throw new Error("Sync Failed");
+        
         const files = await res.json();
         state.currentItems = files.sort((a, b) => (a.kind === 'folder' ? -1 : 1));
         renderFileList(state.currentItems);
         
         if (dom.currentPathMobile) dom.currentPathMobile.textContent = path;
-        if (dom.currentDirLabel) dom.currentDirLabel.textContent = path.split('/').filter(Boolean).pop() || 'Workstation';
-        if (dom.btnBackDir) dom.btnBackDir.disabled = path === '/';
+        if (dom.currentDirLabel) dom.currentDirLabel.textContent = path.split(/[\\/]/).filter(Boolean).pop() || 'Workstation';
+        if (dom.btnBackDir) dom.btnBackDir.disabled = path === '/' || path === '';
+        
+        if (dom.browserEmpty) dom.browserEmpty.classList.toggle('hidden', state.currentItems.length > 0);
         
         return true;
     } catch (err) {
+        console.error("Load Failed:", err);
+        if (dom.browserEmpty) {
+            dom.browserEmpty.classList.remove('hidden');
+            const emptyLabel = dom.browserEmpty.querySelector('h3');
+            if (emptyLabel) emptyLabel.textContent = "Workstation Offline";
+        }
         return false;
     }
 }
