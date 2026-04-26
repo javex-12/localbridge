@@ -10,7 +10,7 @@
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="gsap.js"></script>
     <script src="jsQR.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -129,9 +129,9 @@
     <!-- ═══ TOP STATUS BAR ═══ -->
     <header class="pt-[var(--safe-top)] px-6 h-24 flex items-center justify-between z-20">
         <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
-                <i data-lucide="zap" class="text-blue-500 w-5 h-5"></i>
-            </div>
+            <button id="btn-back-dir" class="w-10 h-10 rounded-2xl glass-card flex items-center justify-center disabled:opacity-30">
+                <i data-lucide="chevron-left" class="w-6 h-6 text-blue-500"></i>
+            </button>
             <div>
                 <h1 id="current-dir-label" class="text-lg font-extrabold tracking-tighter text-white uppercase italic">Workstation</h1>
                 <div class="flex items-center gap-2 mt-0.5">
@@ -199,13 +199,24 @@
 
         <!-- BROWSE PANE -->
         <section id="browse-pane" class="pane absolute inset-0 overflow-hidden flex flex-col hidden">
-            <div class="px-6 mb-6">
+            <div class="px-6 mb-4">
                 <div class="glass-card h-14 rounded-2xl flex items-center px-5 gap-4">
                     <i data-lucide="search" class="w-5 h-5 text-slate-500"></i>
                     <input id="mobile-search" type="text" placeholder="Search workspace..." class="bg-transparent border-none outline-none text-sm font-bold text-white w-full placeholder:text-slate-600">
+                    <button id="btn-clear-mobile-search" class="hidden">
+                        <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+                    </button>
                 </div>
             </div>
+            <div class="px-6 flex items-center justify-between mb-4">
+                <div id="current-path-mobile" class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest italic truncate max-w-[70%]">/ROOT</div>
+                <div id="browse-count" class="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">0 ITEMS</div>
+            </div>
             <div id="file-list" class="flex-1 overflow-y-auto px-6 pb-32 grid grid-cols-2 gap-4"></div>
+            <div id="browser-empty" class="absolute inset-0 flex flex-col items-center justify-center text-center px-12 hidden pointer-events-none">
+                <i data-lucide="folder-search" class="w-12 h-12 text-slate-800 mb-4"></i>
+                <h3 class="text-sm font-extrabold text-slate-600 uppercase tracking-widest">Silent Library</h3>
+            </div>
         </section>
 
         <!-- TRANSFERS PANE -->
