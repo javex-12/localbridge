@@ -12,21 +12,21 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #020617;
+            background-color: #030712;
             color: #f8fafc;
             user-select: none;
         }
         .glass {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
         .glass-dark {
-            background: rgba(2, 6, 23, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.04);
         }
         ::-webkit-scrollbar {
             width: 8px;
@@ -43,8 +43,8 @@
             background: rgba(255, 255, 255, 0.2);
         }
         .mesh-bg {
-            background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.1) 0%, transparent 40%),
-                        radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.1) 0%, transparent 40%);
+            background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12) 0%, transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(79, 70, 229, 0.12) 0%, transparent 40%);
         }
         .file-item {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -54,8 +54,12 @@
             transform: translateY(-2px);
         }
         .file-item.is-selected {
-            background: rgba(16, 185, 129, 0.1);
-            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(37, 99, 235, 0.1);
+            border-color: rgba(37, 99, 235, 0.3);
+        }
+        @keyframes cellIn {
+            from { opacity: 0; transform: scale(0.96) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
     </style>
 </head>
@@ -67,32 +71,32 @@
         <aside class="w-80 flex-shrink-0 glass border-r border-white/5 flex flex-col">
             <div class="p-8 pb-4">
                 <div class="flex items-center gap-3 mb-8">
-                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
                         <i data-lucide="bridge" class="text-white w-6 h-6"></i>
                     </div>
                     <h1 class="text-xl font-black tracking-tighter uppercase">LocalBridge</h1>
                 </div>
 
                 <div class="space-y-6">
-                    <section class="p-5 rounded-3xl bg-emerald-500/10 border border-emerald-500/20">
+                    <section class="p-5 rounded-3xl bg-blue-600/10 border border-blue-600/20">
                         <div class="flex items-center justify-between mb-3">
-                            <span class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Mobile Pair</span>
-                            <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Mobile Pair</span>
+                            <span class="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
                         </div>
-                        <button id="btn-show-qr" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                        <button id="btn-show-qr" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
                             <i data-lucide="qr-code" class="w-4 h-4"></i>
                             Connect Mobile
                         </button>
-                        <p class="text-[10px] text-emerald-500/60 mt-3 leading-relaxed">Scan pairing QR from your phone app to sync folders.</p>
+                        <p class="text-[10px] text-blue-400/60 mt-3 leading-relaxed">Scan pairing QR from your phone app to sync folders.</p>
                     </section>
 
                     <nav class="space-y-1">
                         <button id="btn-home" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                            <i data-lucide="home" class="w-4 h-4"></i>
+                            <i data-lucide="home" class="w-4 h-4 text-blue-500"></i>
                             Workspace Home
                         </button>
                         <button id="btn-refresh" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <i data-lucide="refresh-cw" class="w-4 h-4 text-blue-500"></i>
                             Reload Files
                         </button>
                     </nav>
@@ -131,20 +135,20 @@
                     <div class="flex flex-col">
                         <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Location</span>
                         <div class="flex items-center gap-2">
-                            <i data-lucide="folder" class="w-3.5 h-3.5 text-emerald-500"></i>
-                            <span id="current-path" class="text-xs font-mono text-emerald-500 truncate max-w-md">/</span>
+                            <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-500"></i>
+                            <span id="current-path" class="text-xs font-mono text-blue-400 truncate max-w-md">/</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <div class="glass h-11 px-4 rounded-xl flex items-center gap-3 w-64 focus-within:w-80 focus-within:ring-2 ring-emerald-500/50 transition-all">
+                    <div class="glass h-11 px-4 rounded-xl flex items-center gap-3 w-64 focus-within:w-80 focus-within:ring-2 ring-blue-500/50 transition-all">
                         <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
                         <input type="text" id="search-input" placeholder="Search workspace..." class="bg-transparent border-none outline-none text-xs text-white w-full">
                     </div>
 
                     <div class="flex bg-white/5 p-1 rounded-xl">
-                        <button id="btn-grid" class="w-9 h-9 rounded-lg flex items-center justify-center transition-all bg-emerald-500 text-white" title="Grid view">
+                        <button id="btn-grid" class="w-9 h-9 rounded-lg flex items-center justify-center transition-all bg-blue-600 text-white" title="Grid view">
                             <i data-lucide="layout-grid" class="w-4 h-4"></i>
                         </button>
                         <button id="btn-list" class="w-9 h-9 rounded-lg flex items-center justify-center transition-all text-slate-500 hover:text-white" title="List view">
@@ -171,7 +175,7 @@
                     </article>
 
                     <article class="glass p-6 rounded-[32px] border border-white/5 flex flex-col gap-4">
-                        <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
                             <i data-lucide="folder-open" class="w-5 h-5"></i>
                         </div>
                         <div>
@@ -196,8 +200,8 @@
                 <!-- File Browser -->
                 <section>
                     <div class="flex items-center justify-between mb-6">
-                        <h2 id="current-dir-label" class="text-xl font-black tracking-tight">Home Workspace</h2>
-                        <button id="btn-clear-search" class="text-xs font-bold text-slate-500 hover:text-emerald-500 hidden flex items-center gap-1">
+                        <h2 id="current-dir-label" class="text-xl font-black tracking-tight text-white">Home Workspace</h2>
+                        <button id="btn-clear-search" class="text-xs font-bold text-slate-500 hover:text-blue-500 hidden flex items-center gap-1">
                             <i data-lucide="x" class="w-3 h-3"></i> Clear Search
                         </button>
                     </div>
@@ -216,7 +220,7 @@
                 <!-- Transfer Activity -->
                 <section id="transfer-zone" class="pb-12">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-black tracking-tight">Live Transfers</h2>
+                        <h2 class="text-xl font-black tracking-tight text-white">Live Transfers</h2>
                     </div>
                     <div id="transfer-list" class="space-y-3">
                         <div class="glass p-8 rounded-[32px] border border-white/5 border-dashed flex flex-col items-center justify-center text-center opacity-40">
@@ -241,11 +245,11 @@
                 <p class="text-slate-400 text-sm">Scan this code with the LocalBridge mobile app.</p>
             </div>
             <div class="glass rounded-3xl p-6 mb-8 flex items-center justify-center">
-                <div id="qr-code" class="w-full bg-white p-2 rounded-xl"></div>
+                <div id="qr-code" class="w-full bg-white p-2 rounded-xl overflow-hidden"></div>
             </div>
-            <div class="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-500"></i>
-                <p class="text-[11px] text-emerald-500 font-medium leading-relaxed">Encrypted local transfer. Files never leave your local WiFi network.</p>
+            <div class="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+                <i data-lucide="shield-check" class="w-5 h-5 text-blue-500"></i>
+                <p class="text-[11px] text-blue-400 font-medium leading-relaxed">Encrypted local transfer. Files never leave your local WiFi network.</p>
             </div>
         </div>
     </div>

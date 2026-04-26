@@ -3,8 +3,8 @@
   "short_name": "LocalBridge",
   "start_url": "/pwa/index.html",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#10b981",
+  "background_color": "#030712",
+  "theme_color": "#2563eb",
   "icons": [
     {
       "src": "/pwa/icon.svg",

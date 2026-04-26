@@ -125,33 +125,30 @@ function updateConnectionUI(connected) {
     if (connected) {
         dom.dashboardConnect.innerHTML = `
             <div>
-                <h4 style="font-size:1.0rem; font-weight:800; margin-bottom:4px; color:var(--green-text);">Connected to Workstation</h4>
-                <p style="font-size:0.8rem; color:var(--text-sec); line-height:1.4;">${state.laptopIp} is live</p>
+                <h4 class="font-black text-white text-sm uppercase tracking-wider mb-1">Station Linked</h4>
+                <p class="text-[11px] text-blue-400 font-bold tracking-tight">${state.laptopIp}</p>
             </div>
-            <div style="width:48px; height:48px; border-radius:50%; background:var(--green-soft); color:var(--green-text); display:grid; place-items:center;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M20 6L9 17l-5-5"/></svg>
+            <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
+                <i data-lucide="check" class="w-6 h-6"></i>
             </div>
         `;
         dom.settingsHost.textContent = state.laptopIp;
-        dom.sessionLabel.textContent = '● Connected locally';
-        dom.sessionLabel.style.color = 'var(--green)';
+        dom.sessionLabel.textContent = '● Connected';
+        dom.sessionLabel.className = 'text-[9px] font-black uppercase tracking-[0.1em] text-blue-500';
     } else {
         dom.dashboardConnect.innerHTML = `
             <div>
-                <h4 style="font-size:1.0rem; font-weight:800; margin-bottom:4px;">Not Connected</h4>
-                <p style="font-size:0.8rem; color:var(--text-sec); line-height:1.4;">Pair with a PC to start sending files locally.</p>
+                <h4 class="font-black text-white text-sm uppercase tracking-wider mb-1">Not Connected</h4>
+                <p class="text-[11px] text-slate-400 leading-relaxed font-medium">Link with your workstation to start moving data.</p>
             </div>
-            <button id="btn-open-scanner-new" class="round-btn round-btn-accent" style="flex-shrink:0; width:48px; height:48px;">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
-                </svg>
+            <button id="btn-open-scanner-new" class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20 active:scale-90 transition-transform">
+                <i data-lucide="maximize" class="w-6 h-6"></i>
             </button>
         `;
-        // Re-bind the new button
         document.getElementById('btn-open-scanner-new').addEventListener('click', showScannerOverlay);
-        dom.settingsHost.textContent = 'Not connected';
-        dom.sessionLabel.textContent = '○ Disconnected';
-        dom.sessionLabel.style.color = 'var(--text-muted)';
+        dom.settingsHost.textContent = '--';
+        dom.sessionLabel.textContent = '○ Off-Air';
+        dom.sessionLabel.className = 'text-[9px] font-black uppercase tracking-[0.1em] text-slate-500';
     }
 }
 
@@ -164,6 +161,10 @@ function setPane(paneName) {
     dom.dockItems.forEach((item) => {
         item.classList.toggle('is-active', item.dataset.pane === paneName);
     });
+    
+    if (paneName === 'browse') {
+        dom.currentDirLabel.className = 'text-lg font-black tracking-tight leading-tight text-white uppercase italic';
+    }
 }
 
 function showScannerOverlay() {
@@ -333,7 +334,7 @@ function renderFiles(files) {
     dom.fileList.innerHTML = '';
     const showEmpty = files.length === 0;
     dom.browserEmpty.classList.toggle('hidden', !showEmpty);
-    dom.browseCount.textContent = `${files.length} item${files.length === 1 ? '' : 's'}`;
+    dom.browseCount.textContent = `${files.length} ITEMS`;
     dom.clearMobileSearchBtn.classList.toggle('hidden', !dom.mobileSearch.value.trim());
 
     if (showEmpty) return;
@@ -342,18 +343,18 @@ function renderFiles(files) {
 
     files.forEach((file, i) => {
         const card = document.createElement('button');
-        card.className = 'file-cell glass p-4 rounded-3xl text-left active:scale-95 transition-transform flex flex-col gap-3 group';
+        card.className = 'file-cell glass p-5 rounded-[32px] text-left active:scale-95 transition-transform flex flex-col gap-4 group border border-white/5 shadow-inner';
         card.style.animation = `cellIn 0.3s ease-out both ${i * 20}ms`;
         
         const iconColor = getIconColor(file.kind);
 
         card.innerHTML = `
-            <div class="file-cell-icon w-10 h-10 rounded-xl flex items-center justify-center bg-${iconColor}-500/10 text-${iconColor}-400 group-hover:bg-${iconColor}-500 group-hover:text-white transition-all">
+            <div class="file-cell-icon w-11 h-11 rounded-2xl flex items-center justify-center bg-${iconColor}-500/10 text-${iconColor}-400 group-hover:bg-${iconColor}-600 group-hover:text-white transition-all">
                 ${getFileIcon(file.kind)}
             </div>
             <div class="file-cell-body min-w-0">
-                <div class="file-cell-name text-xs font-bold text-white truncate mb-0.5">${escapeHtml(file.name)}</div>
-                <div class="file-cell-size text-[10px] font-bold text-slate-500 uppercase">${file.kind === 'folder' ? 'Folder' : formatSize(file.size)}</div>
+                <div class="file-cell-name text-[11px] font-black text-white truncate mb-0.5 uppercase tracking-wide">${escapeHtml(file.name)}</div>
+                <div class="file-cell-size text-[9px] font-bold text-slate-500 uppercase tracking-widest">${file.kind === 'folder' ? 'Folder' : formatSize(file.size)}</div>
             </div>
         `;
         card.addEventListener('click', () => handleFileTap(file));
@@ -361,6 +362,18 @@ function renderFiles(files) {
 
         if (file.kind === 'image') hydrateThumbnail(file, card, renderId);
     });
+}
+
+function getIconColor(kind) {
+    switch (kind) {
+        case 'folder': return 'blue';
+        case 'image': return 'indigo';
+        case 'video': return 'purple';
+        case 'audio': return 'rose';
+        case 'archive': return 'orange';
+        case 'document': return 'blue';
+        default: return 'slate';
+    }
 }
 
 async function hydrateThumbnail(file, card, renderId) {
@@ -371,7 +384,8 @@ async function hydrateThumbnail(file, card, renderId) {
         if (payload.thumbnail) {
             const icon = card.querySelector('.file-cell-icon');
             if (icon) {
-                icon.innerHTML = `<img src="data:image/jpeg;base64,${payload.thumbnail}" class="file-cell-thumb" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+                icon.innerHTML = `<img src="data:image/jpeg;base64,${payload.thumbnail}" class="file-cell-thumb" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">`;
+                icon.className = "file-cell-icon w-full aspect-square rounded-[22px] flex items-center justify-center bg-black/20 overflow-hidden";
             }
         }
     } catch (e) {}
@@ -401,10 +415,10 @@ function recordTransfer(entry) {
 
 function renderTransfers() {
     const items = [...state.uploads.values()].sort((a, b) => b.updatedAt - a.updatedAt);
-    dom.transferCountMobile.textContent = `${items.length} upload${items.length === 1 ? '' : 's'}`;
+    dom.transferCountMobile.textContent = `${items.length} ACTIVE`;
 
     if (items.length === 0) {
-        dom.mobileTransferList.innerHTML = `<div class="transfer-empty glass p-8 rounded-3xl border border-dashed border-white/10 text-center"><strong class="text-sm text-slate-400">No uploads yet</strong><p class="text-xs text-slate-600 mt-1">Files you send to the PC appear here.</p></div>`;
+        dom.mobileTransferList.innerHTML = `<div class="transfer-empty glass p-10 rounded-[40px] border border-dashed border-white/5 text-center shadow-inner opacity-40"><strong class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Silent Airwaves</strong><p class="text-[9px] text-slate-600 mt-2 font-bold uppercase tracking-widest">No active traffic detected.</p></div>`;
         return;
     }
 
@@ -412,17 +426,17 @@ function renderTransfers() {
         const pct = item.total ? Math.round((item.transferred / item.total) * 100) : 0;
         const isDone = item.status === 'done';
         return `
-            <article class="glass p-4 rounded-3xl border border-white/5 flex items-center gap-4 animate-in slide-in-from-bottom-2 duration-300">
-                <div class="w-10 h-10 rounded-2xl ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500/10 text-blue-400'} flex items-center justify-center">
-                    <i data-lucide="${isDone ? 'check' : 'upload'}" class="w-5 h-5"></i>
+            <article class="glass p-5 rounded-[32px] border border-white/5 flex items-center gap-5 shadow-inner">
+                <div class="w-12 h-12 rounded-[20px] ${isDone ? 'bg-blue-600 text-white' : 'bg-indigo-500/10 text-indigo-400'} flex items-center justify-center shadow-lg">
+                    <i data-lucide="${isDone ? 'check' : 'upload-cloud'}" class="w-6 h-6"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-center mb-1.5">
-                        <div class="text-xs font-bold text-white truncate mr-4">${escapeHtml(item.name)}</div>
-                        <span class="text-[9px] font-black uppercase tracking-widest ${isDone ? 'text-emerald-500' : 'text-blue-400'}">${item.status}</span>
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-[11px] font-black text-white truncate mr-4 uppercase tracking-wider">${escapeHtml(item.name)}</div>
+                        <span class="text-[9px] font-black uppercase tracking-widest ${isDone ? 'text-blue-500' : 'text-indigo-400'}">${item.status}</span>
                     </div>
-                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div class="h-full ${isDone ? 'bg-emerald-500' : 'bg-blue-500 animate-pulse'} transition-all duration-500" style="width:${pct}%"></div>
+                    <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full ${isDone ? 'bg-blue-600' : 'bg-blue-500 animate-pulse'} transition-all duration-500" style="width:${pct}%"></div>
                     </div>
                 </div>
             </article>`;
@@ -474,7 +488,7 @@ function uploadSingleFile(file) {
 }
 
 function showToast(name, pct) {
-    dom.uploadToastLabel.textContent = pct === 100 ? `✓ ${name} done` : `Uploading ${name}… ${pct}%`;
+    dom.uploadToastLabel.textContent = pct === 100 ? `SYNC COMPLETE: ${name}` : `SYNCING: ${name} ${pct}%`;
     dom.uploadToastFill.style.width = `${pct}%`;
     dom.uploadToast.classList.add('visible');
     dom.uploadToast.classList.remove('opacity-0', 'translate-y-20');
@@ -486,16 +500,9 @@ function hideToast() {
     setTimeout(() => dom.uploadToast.classList.remove('visible'), 300);
 }
 
-function getIconColor(kind) {
-    switch (kind) {
-        case 'folder': return 'amber';
-        case 'image': return 'blue';
-        case 'video': return 'purple';
-        case 'audio': return 'rose';
-        case 'archive': return 'orange';
-        case 'document': return 'emerald';
-        default: return 'slate';
-    }
+function resetSession() {
+    localStorage.clear();
+    location.reload();
 }
 
 /* ── Helpers ──────────────────────────────────────────────── */
@@ -532,4 +539,3 @@ function parentPath(path) {
 function isRootPath(path) { return path === '/' || !path || path.endsWith(':'); }
 
 init();
-

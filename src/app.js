@@ -175,12 +175,12 @@ function renderFiles(files) {
 
 function getIconColor(kind) {
     switch (kind) {
-        case 'folder': return 'amber';
-        case 'image': return 'blue';
+        case 'folder': return 'blue';
+        case 'image': return 'indigo';
         case 'video': return 'purple';
         case 'audio': return 'rose';
         case 'archive': return 'orange';
-        case 'document': return 'emerald';
+        case 'document': return 'blue';
         default: return 'slate';
     }
 }
@@ -202,7 +202,7 @@ function updateTransferUI(data) {
 
     if (existing.status === 'transferring' || existing.status === 'done') {
         connectionStatusEl.textContent = 'Phone Active';
-        connectionStatusEl.className = 'px-2 py-0.5 rounded-full bg-emerald-500/20 text-[9px] font-black uppercase text-emerald-500';
+        connectionStatusEl.className = 'px-2 py-0.5 rounded-full bg-blue-500/20 text-[9px] font-black uppercase text-blue-400';
     }
 
     const ordered = [...transfers.values()].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -219,17 +219,17 @@ function updateTransferUI(data) {
         const pct = isDone ? 100 : 38;
 
         return `
-            <article class="glass p-4 rounded-2xl border border-white/5 flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500/10 text-blue-400'}">
+            <article class="glass p-4 rounded-2xl border border-white/5 flex items-center gap-4 animate-in slide-in-from-bottom-2 duration-300">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-blue-600 text-white' : 'bg-indigo-500/10 text-indigo-400'}">
                     <i data-lucide="${isDone ? 'check' : 'upload-cloud'}" class="w-5 h-5"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-center mb-1.5">
                         <div class="text-xs font-bold text-white truncate mr-4">${escapeHtml(entry.filename)}</div>
-                        <span class="text-[9px] font-black uppercase tracking-widest ${isDone ? 'text-emerald-500' : 'text-blue-400'}">${escapeHtml(entry.status)}</span>
+                        <span class="text-[9px] font-black uppercase tracking-widest ${isDone ? 'text-blue-400' : 'text-indigo-400'}">${escapeHtml(entry.status)}</span>
                     </div>
                     <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <div class="h-full ${isDone ? 'bg-emerald-500' : 'bg-blue-500 animate-pulse'} transition-all duration-500" style="width:${pct}%"></div>
+                        <div class="h-full ${isDone ? 'bg-blue-500' : 'bg-indigo-500 animate-pulse'} transition-all duration-500" style="width:${pct}%"></div>
                     </div>
                 </div>
             </article>
@@ -239,8 +239,8 @@ function updateTransferUI(data) {
 
 function setView(mode) {
     currentView = mode;
-    btnGrid.className = `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${mode === 'grid' ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-white'}`;
-    btnList.className = `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${mode === 'list' ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-white'}`;
+    btnGrid.className = `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${mode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white'}`;
+    btnList.className = `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${mode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-white'}`;
     renderFiles(currentItems);
 }
 
