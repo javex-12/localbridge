@@ -1,242 +1,318 @@
 /* ── State ────────────────────────────────────────────────── */
-let currentPath    = '/';
-let token          = '';
-let laptopIp       = '';
-let currentItems   = [];
-let currentPane    = 'browse';
-let searchTimer    = null;
-let thumbVersion   = 0;
-let scanTimer      = null;
-const uploads      = new Map();
+const state = {
+    currentPath: localStorage.getItem('lastPath') || '/',
+    token: localStorage.getItem('connectionToken') || '',
+    laptopIp: localStorage.getItem('laptopIp') || '',
+    currentItems: [],
+    currentPane: 'home',
+    searchTimer: null,
+    thumbVersion: 0,
+    scanTimer: null,
+    uploads: new Map(),
+    isConnected: false
+};
 
 /* ── DOM refs ─────────────────────────────────────────────── */
-const connectScreen        = document.getElementById('connect-screen');
-const browserScreen        = document.getElementById('browser-screen');
-const fileList             = document.getElementById('file-list');
-const browseCount          = document.getElementById('browse-count');
-const currentDirLabel      = document.getElementById('current-dir-label');
-const sessionLabel         = document.getElementById('session-label');
-const currentPathMobile    = document.getElementById('current-path-mobile');
-const browserEmpty         = document.getElementById('browser-empty');
-const mobileSearch         = document.getElementById('mobile-search');
-const clearMobileSearchBtn = document.getElementById('btn-clear-mobile-search');
-const transferCountMobile  = document.getElementById('transfer-count-mobile');
-const mobileTransferList   = document.getElementById('mobile-transfer-list');
-const settingsHost         = document.getElementById('settings-host');
-const settingsFolder       = document.getElementById('settings-folder');
-const btnBackDir           = document.getElementById('btn-back-dir');
-const btnUpload            = document.getElementById('btn-upload-pro');
-const btnScanStart         = document.getElementById('btn-scan-start');
-const btnRescan            = document.getElementById('btn-rescan');
-const pillNetwork          = document.getElementById('pill-network');
-const pillCamera           = document.getElementById('pill-camera');
-const fileInput            = document.getElementById('file-input');
-const scannerVideo         = document.getElementById('scanner-video');
-const scannerCanvas        = document.getElementById('scanner-canvas');
-const uploadToast          = document.getElementById('upload-toast');
-const uploadToastLabel     = document.getElementById('upload-toast-label');
-const uploadToastFill      = document.getElementById('upload-toast-fill');
-const dockItems            = document.querySelectorAll('.dock-item');
-const panes = {
-    home:      document.getElementById('home-pane'),
-    browse:    document.getElementById('browse-pane'),
-    transfers: document.getElementById('transfers-pane'),
-    settings:  document.getElementById('settings-pane'),
+const dom = {
+    connectScreen:        document.getElementById('connect-screen'),
+    browserScreen:        document.getElementById('browser-screen'),
+    fileList:             document.getElementById('file-list'),
+    browseCount:          document.getElementById('browse-count'),
+    currentDirLabel:      document.getElementById('current-dir-label'),
+    sessionLabel:         document.getElementById('session-label'),
+    currentPathMobile:    document.getElementById('current-path-mobile'),
+    browserEmpty:         document.getElementById('browser-empty'),
+    mobileSearch:         document.getElementById('mobile-search'),
+    clearMobileSearchBtn: document.getElementById('btn-clear-mobile-search'),
+    transferCountMobile:  document.getElementById('transfer-count-mobile'),
+    mobileTransferList:   document.getElementById('mobile-transfer-list'),
+    settingsHost:         document.getElementById('settings-host'),
+    settingsFolder:       document.getElementById('settings-folder'),
+    btnBackDir:           document.getElementById('btn-back-dir'),
+    btnUpload:            document.getElementById('btn-upload-pro'),
+    btnScanStart:         document.getElementById('btn-scan-start'),
+    btnRescan:            document.getElementById('btn-rescan'),
+    pillNetwork:          document.getElementById('pill-network'),
+    pillCamera:           document.getElementById('pill-camera'),
+    fileInput:            document.getElementById('file-input'),
+    scannerVideo:         document.getElementById('scanner-video'),
+    scannerCanvas:        document.getElementById('scanner-canvas'),
+    uploadToast:          document.getElementById('upload-toast'),
+    uploadToastLabel:     document.getElementById('upload-toast-label'),
+    uploadToastFill:      document.getElementById('upload-toast-fill'),
+    dockItems:            document.querySelectorAll('.dock-item'),
+    panes: {
+        home:      document.getElementById('home-pane'),
+        browse:    document.getElementById('browse-pane'),
+        transfers: document.getElementById('transfers-pane'),
+        settings:  document.getElementById('settings-pane'),
+    },
+    dashboardConnect:     document.getElementById('dashboard-connect'),
+    btnOpenScanner:       document.getElementById('btn-open-scanner')
 };
 
 /* ── Init ─────────────────────────────────────────────────── */
-function init() {
+async function init() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
+        navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
+    setupEventListeners();
     checkSetup();
-    setPane('home');
+    
+    // Auto-reconnect if we have saved credentials
+    if (state.laptopIp && state.token) {
+        updateConnectionUI(true);
+        await loadRemoteFiles(state.currentPath);
+    } else {
+        setPane('home');
+    }
+}
 
-    // UI Bindings for the Dashboard
-    const btnOpenScanner = document.getElementById('btn-open-scanner');
-    btnOpenScanner.addEventListener('click', showScannerOverlay);
+function setupEventListeners() {
+    // Navigation
+    dom.dockItems.forEach(item => {
+        item.addEventListener('click', () => setPane(item.dataset.pane));
+    });
 
-    const btnCloseScanner = document.querySelector('.light.close');
-    btnCloseScanner.addEventListener('click', hideScannerOverlay);
+    // Scanner
+    dom.btnOpenScanner.addEventListener('click', showScannerOverlay);
+    dom.btnScanStart.addEventListener('click', startScan);
+    
+    const btnCloseScanner = dom.connectScreen.querySelector('.light.close');
+    if (btnCloseScanner) btnCloseScanner.addEventListener('click', hideScannerOverlay);
+
+    // Browsing
+    dom.btnBackDir.addEventListener('click', () => {
+        if (!isRootPath(state.currentPath)) {
+            loadRemoteFiles(parentPath(state.currentPath));
+        }
+    });
+
+    dom.mobileSearch.addEventListener('input', () => {
+        clearTimeout(state.searchTimer);
+        state.searchTimer = setTimeout(() => renderFiles(filterCurrentItems()), 100);
+    });
+
+    dom.clearMobileSearchBtn.addEventListener('click', () => {
+        dom.mobileSearch.value = '';
+        renderFiles(filterCurrentItems());
+    });
+
+    // Uploads
+    dom.btnUpload.addEventListener('click', () => dom.fileInput.click());
+    dom.fileInput.addEventListener('change', () => uploadFiles([...dom.fileInput.files]));
 
     const categoryCards = document.querySelectorAll('.category-card');
     categoryCards.forEach(card => {
         card.addEventListener('click', () => {
-            if (!token || !laptopIp) {
+            if (!state.token || !state.laptopIp) {
                 showScannerOverlay();
-                alert('Please connect to the Desktop app first before sending files.');
                 return;
             }
             const type = card.getAttribute('data-pick');
-            if (type === '*') {
-                fileInput.removeAttribute('accept');
-            } else {
-                fileInput.setAttribute('accept', type);
-            }
-            // Temporarily intercept the standard flow to ensure it uploads to the correct folder
-            document.getElementById('file-input').click();
+            dom.fileInput.accept = type === '*' ? '' : type;
+            dom.fileInput.click();
         });
+    });
+
+    // Settings
+    dom.btnRescan.addEventListener('click', resetSession);
+}
+
+function updateConnectionUI(connected) {
+    state.isConnected = connected;
+    if (connected) {
+        dom.dashboardConnect.innerHTML = `
+            <div>
+                <h4 style="font-size:1.0rem; font-weight:800; margin-bottom:4px; color:var(--green-text);">Connected to Workstation</h4>
+                <p style="font-size:0.8rem; color:var(--text-sec); line-height:1.4;">${state.laptopIp} is live</p>
+            </div>
+            <div style="width:48px; height:48px; border-radius:50%; background:var(--green-soft); color:var(--green-text); display:grid; place-items:center;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+        `;
+        dom.settingsHost.textContent = state.laptopIp;
+        dom.sessionLabel.textContent = '● Connected locally';
+        dom.sessionLabel.style.color = 'var(--green)';
+    } else {
+        dom.dashboardConnect.innerHTML = `
+            <div>
+                <h4 style="font-size:1.0rem; font-weight:800; margin-bottom:4px;">Not Connected</h4>
+                <p style="font-size:0.8rem; color:var(--text-sec); line-height:1.4;">Pair with a PC to start sending files locally.</p>
+            </div>
+            <button id="btn-open-scanner-new" class="round-btn round-btn-accent" style="flex-shrink:0; width:48px; height:48px;">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+                </svg>
+            </button>
+        `;
+        // Re-bind the new button
+        document.getElementById('btn-open-scanner-new').addEventListener('click', showScannerOverlay);
+        dom.settingsHost.textContent = 'Not connected';
+        dom.sessionLabel.textContent = '○ Disconnected';
+        dom.sessionLabel.style.color = 'var(--text-muted)';
+    }
+}
+
+/* ── Pane switching ───────────────────────────────────────── */
+function setPane(paneName) {
+    state.currentPane = paneName;
+    Object.entries(dom.panes).forEach(([name, pane]) => {
+        if (pane) pane.classList.toggle('hidden', name !== paneName);
+    });
+    dom.dockItems.forEach((item) => {
+        item.classList.toggle('is-active', item.dataset.pane === paneName);
     });
 }
 
 function showScannerOverlay() {
-    connectScreen.classList.remove('hidden');
-    gsap.fromTo('#connect-window', 
-        { y: '100%' },
-        { y: 0, duration: 0.4, ease: 'power3.out' }
-    );
+    dom.connectScreen.classList.remove('hidden');
+    if (window.gsap) {
+        gsap.fromTo('#connect-window', 
+            { y: '100%' },
+            { y: 0, duration: 0.4, ease: 'power3.out' }
+        );
+    }
 }
 
 function hideScannerOverlay() {
-    gsap.to('#connect-window', {
-        y: '100%',
-        duration: 0.3,
-        ease: 'power3.in',
-        onComplete: () => {
-             connectScreen.classList.add('hidden');
-        }
-    });
+    if (window.gsap) {
+        gsap.to('#connect-window', {
+            y: '100%',
+            duration: 0.3,
+            ease: 'power3.in',
+            onComplete: () => {
+                dom.connectScreen.classList.add('hidden');
+                stopScanner();
+            }
+        });
+    } else {
+        dom.connectScreen.classList.add('hidden');
+        stopScanner();
+    }
 }
 
 /* ── Setup checks ─────────────────────────────────────────── */
 function checkSetup() {
     const online = navigator.onLine;
-    pillNetwork.textContent = online ? '✓ Network ready' : '⚡ Offline ready';
-    pillNetwork.classList.toggle('ok', online);
+    dom.pillNetwork.textContent = online ? '✓ Network ready' : '⚡ Offline ready';
+    dom.pillNetwork.classList.toggle('ok', online);
 
-    // If device doesn't even have mediaDevices (usually because of HTTP instead of HTTPS on mobile)
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        pillCamera.textContent = '✗ Require HTTPS for Camera';
-        pillCamera.classList.add('fail');
+        dom.pillCamera.textContent = '✗ Require HTTPS';
+        dom.pillCamera.classList.add('fail');
         return;
     }
 
     navigator.mediaDevices.enumerateDevices()
         .then((devices) => {
             const hasCamera = devices.some((d) => d.kind === 'videoinput');
-            pillCamera.textContent = hasCamera ? '✓ Camera ready' : '✗ No camera';
-            pillCamera.classList.toggle('ok', hasCamera);
-            pillCamera.classList.toggle('fail', !hasCamera);
+            dom.pillCamera.textContent = hasCamera ? '✓ Camera ready' : '✗ No camera';
+            dom.pillCamera.classList.toggle('ok', hasCamera);
+            dom.pillCamera.classList.toggle('fail', !hasCamera);
         })
-        .catch((err) => {
-            console.warn('Enum err:', err);
-            pillCamera.textContent = '· Camera pending';
+        .catch(() => {
+            dom.pillCamera.textContent = '· Camera pending';
         });
 }
 
 /* ── QR Scanner ───────────────────────────────────────────── */
 async function startScan() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Camera access is blocked because you are not using HTTPS. Please access LocalBridge via HTTPS (like your Vercel URL) on your phone.');
-        return;
-    }
-
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
         });
 
-        scannerVideo.srcObject = stream;
-        await scannerVideo.play();
+        dom.scannerVideo.srcObject = stream;
+        await dom.scannerVideo.play();
 
-        btnScanStart.textContent = 'Scanning…';
-        btnScanStart.disabled = true;
-        pillCamera.textContent = '● Scanning QR';
-        pillCamera.classList.add('ok');
-        pillCamera.classList.remove('fail');
+        dom.btnScanStart.textContent = 'Scanning…';
+        dom.btnScanStart.disabled = true;
+        dom.pillCamera.textContent = '● Scanning QR';
+        dom.pillCamera.classList.add('ok');
 
-        clearInterval(scanTimer);
-        scanTimer = setInterval(readQrFrame, 200);
+        clearInterval(state.scanTimer);
+        state.scanTimer = setInterval(readQrFrame, 200);
     } catch (err) {
-        console.error('Scan err:', err);
-        alert(`Camera error: ${err.name} - ${err.message}. Please allow camera permissions.`);
-        pillCamera.textContent = '✗ Permission denied';
-        pillCamera.classList.add('fail');
-        btnScanStart.textContent = 'Start Camera Scan';
-        btnScanStart.disabled = false;
+        alert(`Camera error: ${err.message}`);
+        dom.btnScanStart.disabled = false;
     }
 }
 
 function readQrFrame() {
-    if (scannerVideo.readyState !== scannerVideo.HAVE_ENOUGH_DATA) return;
+    if (dom.scannerVideo.readyState !== dom.scannerVideo.HAVE_ENOUGH_DATA) return;
 
-    scannerCanvas.width  = scannerVideo.videoWidth;
-    scannerCanvas.height = scannerVideo.videoHeight;
-    const ctx = scannerCanvas.getContext('2d');
-    ctx.drawImage(scannerVideo, 0, 0);
-    const img  = ctx.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
+    dom.scannerCanvas.width  = dom.scannerVideo.videoWidth;
+    dom.scannerCanvas.height = dom.scannerVideo.videoHeight;
+    const ctx = dom.scannerCanvas.getContext('2d');
+    ctx.drawImage(dom.scannerVideo, 0, 0);
+    const img  = ctx.getImageData(0, 0, dom.scannerCanvas.width, dom.scannerCanvas.height);
     const code = jsQR(img.data, img.width, img.height);
 
-    if (!code) return;
-
-    clearInterval(scanTimer);
-    if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
-
-    try {
-        handleHandshake(JSON.parse(code.data));
-    } catch (e) {
-        console.error(e);
-        alert('Invalid QR code. Please scan the LocalBridge desktop QR.');
+    if (code) {
+        clearInterval(state.scanTimer);
+        if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
+        try {
+            handleHandshake(JSON.parse(code.data));
+        } catch (e) {
+            alert('Invalid QR code');
+            startScan(); // Resume scanning
+        }
     }
 }
 
-/* ── Handshake / session transition ─────────────────────── */
+function stopScanner() {
+    clearInterval(state.scanTimer);
+    if (dom.scannerVideo.srcObject) {
+        dom.scannerVideo.srcObject.getTracks().forEach((t) => t.stop());
+        dom.scannerVideo.srcObject = null;
+    }
+    dom.btnScanStart.textContent = 'Start Camera Scan';
+    dom.btnScanStart.disabled = false;
+}
+
+/* ── Handshake ────────────────────────────────────────────── */
 async function handleHandshake(payload) {
-    laptopIp = payload.ip;
-    token    = payload.token;
+    state.laptopIp = payload.ip;
+    state.token = payload.token;
+    
+    localStorage.setItem('laptopIp', state.laptopIp);
+    localStorage.setItem('connectionToken', state.token);
 
-    document.getElementById('dashboard-connect').innerHTML = `
-        <div>
-            <h4 style="font-size:1.0rem; font-weight:800; margin-bottom:4px; color:var(--green-text);">Connected to ${laptopIp}</h4>
-            <p style="font-size:0.8rem; color:var(--text-sec); line-height:1.4;">Ready to send files instantly.</p>
-        </div>
-        <div style="width:48px; height:48px; border-radius:50%; background:var(--green-soft); color:var(--green-text); display:grid; place-items:center;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M20 6L9 17l-5-5"/></svg>
-        </div>
-    `;
-
-    stopScanner();
-
-    // Animate out connect screen overlay
+    updateConnectionUI(true);
     hideScannerOverlay();
-
     setPane('browse');
     await loadRemoteFiles('/');
 }
 
-function stopScanner() {
-    clearInterval(scanTimer);
-    if (scannerVideo.srcObject) {
-        scannerVideo.srcObject.getTracks().forEach((t) => t.stop());
-        scannerVideo.srcObject = null;
-    }
-}
-
 /* ── File loading ─────────────────────────────────────────── */
 async function loadRemoteFiles(path) {
-    currentPath = path;
-    currentPathMobile.textContent = shorten(currentPath);
-    currentDirLabel.textContent   = basename(currentPath) || 'Workstation';
-    settingsFolder.textContent    = currentPath;
-    btnBackDir.disabled           = isRootPath(currentPath);
+    state.currentPath = path;
+    localStorage.setItem('lastPath', path);
 
-    // Show skeleton while loading
-    fileList.innerHTML = [1,2,3,4].map(() =>
-        `<div class="file-cell"><div class="file-cell-icon kind-file skeleton" style="width:42px;height:42px;border-radius:13px;"></div><div class="file-cell-body"><div class="skeleton" style="height:12px;width:80%;border-radius:6px;margin-bottom:6px;"></div><div class="skeleton" style="height:10px;width:50%;border-radius:6px;"></div></div></div>`
+    dom.currentPathMobile.textContent = shorten(path);
+    dom.currentDirLabel.textContent   = basename(path) || 'Workstation';
+    dom.settingsFolder.textContent    = path;
+    dom.btnBackDir.disabled           = isRootPath(path);
+
+    dom.fileList.innerHTML = [1,2,3,4].map(() =>
+        `<div class="file-cell"><div class="file-cell-icon skeleton" style="width:42px;height:42px;"></div><div class="file-cell-body"><div class="skeleton" style="height:12px;width:80%;margin-bottom:6px;"></div><div class="skeleton" style="height:10px;width:50%;"></div></div></div>`
     ).join('');
-    browserEmpty.classList.add('hidden');
+    dom.browserEmpty.classList.add('hidden');
 
     try {
-        const res   = await fetch(`http://${laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${token}`);
+        const res = await fetch(`http://${state.laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${state.token}`);
+        if (!res.ok) throw new Error('Unauthorized');
+        
         const files = await res.json();
-        currentItems = sortFiles(files);
+        state.currentItems = sortFiles(files);
         renderFiles(filterCurrentItems());
     } catch (err) {
         console.error(err);
-        sessionLabel.textContent = '⚠ Connection interrupted';
-        fileList.innerHTML = '';
-        browserEmpty.classList.remove('hidden');
+        updateConnectionUI(false);
+        dom.fileList.innerHTML = '';
+        dom.browserEmpty.classList.remove('hidden');
     }
 }
 
@@ -249,177 +325,135 @@ function sortFiles(files) {
 }
 
 function filterCurrentItems() {
-    const q = mobileSearch.value.trim().toLowerCase();
-    return q ? currentItems.filter((f) => f.name.toLowerCase().includes(q)) : currentItems;
+    const q = dom.mobileSearch.value.trim().toLowerCase();
+    return q ? state.currentItems.filter((f) => f.name.toLowerCase().includes(q)) : state.currentItems;
 }
 
-/* ── File rendering ───────────────────────────────────────── */
 function renderFiles(files) {
-    fileList.innerHTML = '';
+    dom.fileList.innerHTML = '';
     const showEmpty = files.length === 0;
-    browserEmpty.classList.toggle('hidden', !showEmpty);
-    browseCount.textContent = `${files.length} item${files.length === 1 ? '' : 's'}`;
-    clearMobileSearchBtn.classList.toggle('hidden', !mobileSearch.value.trim());
+    dom.browserEmpty.classList.toggle('hidden', !showEmpty);
+    dom.browseCount.textContent = `${files.length} item${files.length === 1 ? '' : 's'}`;
+    dom.clearMobileSearchBtn.classList.toggle('hidden', !dom.mobileSearch.value.trim());
 
     if (showEmpty) return;
 
-    const renderId = ++thumbVersion;
+    const renderId = ++state.thumbVersion;
 
     files.forEach((file, i) => {
         const card = document.createElement('button');
-        card.type      = 'button';
-        card.className = 'file-cell';
-        card.style.animationDelay = `${i * 25}ms`;
+        card.className = 'file-cell glass p-4 rounded-3xl text-left active:scale-95 transition-transform flex flex-col gap-3 group';
+        card.style.animation = `cellIn 0.3s ease-out both ${i * 20}ms`;
+        
+        const iconColor = getIconColor(file.kind);
 
         card.innerHTML = `
-            <div class="file-cell-icon kind-${file.kind}">${getFileIcon(file.kind)}</div>
-            <div class="file-cell-body">
-                <div class="file-cell-name">${escapeHtml(file.name)}</div>
-                <div class="file-cell-size">${file.kind === 'folder' ? 'Folder' : formatSize(file.size)}</div>
+            <div class="file-cell-icon w-10 h-10 rounded-xl flex items-center justify-center bg-${iconColor}-500/10 text-${iconColor}-400 group-hover:bg-${iconColor}-500 group-hover:text-white transition-all">
+                ${getFileIcon(file.kind)}
+            </div>
+            <div class="file-cell-body min-w-0">
+                <div class="file-cell-name text-xs font-bold text-white truncate mb-0.5">${escapeHtml(file.name)}</div>
+                <div class="file-cell-size text-[10px] font-bold text-slate-500 uppercase">${file.kind === 'folder' ? 'Folder' : formatSize(file.size)}</div>
             </div>
         `;
-
         card.addEventListener('click', () => handleFileTap(file));
-        fileList.appendChild(card);
+        dom.fileList.appendChild(card);
 
-        // Lazy-load thumbnail for images
-        if (file.kind === 'image') {
-            hydrateThumbnail(file, card, renderId);
-        }
+        if (file.kind === 'image') hydrateThumbnail(file, card, renderId);
     });
 }
 
 async function hydrateThumbnail(file, card, renderId) {
     try {
-        const res = await fetch(`http://${laptopIp}:3000/api/thumbnail?path=${encodeURIComponent(file.path)}&token=${token}`);
-        if (!res.ok || renderId !== thumbVersion) return;
+        const res = await fetch(`http://${state.laptopIp}:3000/api/thumbnail?path=${encodeURIComponent(file.path)}&token=${state.token}`);
+        if (!res.ok || renderId !== state.thumbVersion) return;
         const payload = await res.json();
         if (payload.thumbnail) {
             const icon = card.querySelector('.file-cell-icon');
             if (icon) {
-                icon.style.width  = '100%';
-                icon.style.height = 'auto';
-                icon.style.aspectRatio = '4/3';
-                icon.style.borderRadius = '10px';
-                icon.innerHTML = `<img src="data:image/jpeg;base64,${payload.thumbnail}" alt="${escapeHtml(file.name)}" class="file-cell-thumb">`;
+                icon.innerHTML = `<img src="data:image/jpeg;base64,${payload.thumbnail}" class="file-cell-thumb" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
             }
         }
-    } catch (e) { /* silent */ }
+    } catch (e) {}
 }
 
 function handleFileTap(file) {
     if (file.kind === 'folder') {
         loadRemoteFiles(file.path);
-        return;
+    } else {
+        recordTransfer({
+            id: `download-${Date.now()}`,
+            name: file.name,
+            status: 'done',
+            transferred: file.size,
+            total: file.size,
+        });
+        window.open(`http://${state.laptopIp}:3000/api/file?path=${encodeURIComponent(file.path)}&token=${state.token}`, '_blank');
     }
-
-    recordTransfer({
-        id:          `download-${Date.now()}`,
-        name:        file.name,
-        status:      'ready',
-        transferred: file.size,
-        total:       file.size,
-    });
-
-    window.open(
-        `http://${laptopIp}:3000/api/file?path=${encodeURIComponent(file.path)}&token=${token}`,
-        '_blank'
-    );
-}
-
-/* ── Pane switching ───────────────────────────────────────── */
-function setPane(paneName) {
-    currentPane = paneName;
-    Object.entries(panes).forEach(([name, pane]) => {
-        pane.classList.toggle('hidden', name !== paneName);
-    });
-    dockItems.forEach((item) => {
-        item.classList.toggle('is-active', item.dataset.pane === paneName);
-    });
 }
 
 /* ── Transfers ────────────────────────────────────────────── */
 function recordTransfer(entry) {
-    const existing = uploads.get(entry.id) || {};
-    uploads.set(entry.id, { ...existing, ...entry, updatedAt: Date.now() });
+    const existing = state.uploads.get(entry.id) || {};
+    state.uploads.set(entry.id, { ...existing, ...entry, updatedAt: Date.now() });
     renderTransfers();
 }
 
 function renderTransfers() {
-    const items = [...uploads.values()].sort((a, b) => b.updatedAt - a.updatedAt);
-    transferCountMobile.textContent = `${items.length} upload${items.length === 1 ? '' : 's'}`;
+    const items = [...state.uploads.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+    dom.transferCountMobile.textContent = `${items.length} upload${items.length === 1 ? '' : 's'}`;
 
     if (items.length === 0) {
-        mobileTransferList.innerHTML = `
-            <div class="transfer-empty">
-                <strong>No uploads yet</strong>
-                <p>Tap the upload button to send files to the desktop.</p>
-            </div>`;
+        dom.mobileTransferList.innerHTML = `<div class="transfer-empty glass p-8 rounded-3xl border border-dashed border-white/10 text-center"><strong class="text-sm text-slate-400">No uploads yet</strong><p class="text-xs text-slate-600 mt-1">Files you send to the PC appear here.</p></div>`;
         return;
     }
 
-    mobileTransferList.innerHTML = items.map((item) => {
-        const total    = item.total || 0;
-        const progress = total > 0
-            ? Math.min(100, Math.round((item.transferred / total) * 100))
-            : item.status === 'done' ? 100 : 12;
-        const isDone    = item.status === 'done';
-        const isFailed  = item.status === 'failed';
-        const barClass  = isDone || isFailed ? '' : 'is-indeterminate';
-        const barWidth  = isDone ? '100%' : isFailed ? '0%' : `${progress}%`;
-
+    dom.mobileTransferList.innerHTML = items.map((item) => {
+        const pct = item.total ? Math.round((item.transferred / item.total) * 100) : 0;
+        const isDone = item.status === 'done';
         return `
-            <article class="transfer-item">
-                <div class="transfer-row">
-                    <div class="transfer-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/>
-                            <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
-                        </svg>
-                    </div>
-                    <div class="transfer-info">
-                        <div class="transfer-name">${escapeHtml(item.name)}</div>
-                        <div class="transfer-sub">${formatSize(item.transferred)}${total ? ` / ${formatSize(total)}` : ''} · ${progress}%</div>
-                    </div>
-                    <span class="transfer-status ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span>
+            <article class="glass p-4 rounded-3xl border border-white/5 flex items-center gap-4 animate-in slide-in-from-bottom-2 duration-300">
+                <div class="w-10 h-10 rounded-2xl ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500/10 text-blue-400'} flex items-center justify-center">
+                    <i data-lucide="${isDone ? 'check' : 'upload'}" class="w-5 h-5"></i>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill ${barClass}" style="width:${barWidth}"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <div class="text-xs font-bold text-white truncate mr-4">${escapeHtml(item.name)}</div>
+                        <span class="text-[9px] font-black uppercase tracking-widest ${isDone ? 'text-emerald-500' : 'text-blue-400'}">${item.status}</span>
+                    </div>
+                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full ${isDone ? 'bg-emerald-500' : 'bg-blue-500 animate-pulse'} transition-all duration-500" style="width:${pct}%"></div>
+                    </div>
                 </div>
             </article>`;
     }).join('');
+    lucide.createIcons();
 }
 
-/* ── Upload ───────────────────────────────────────────────── */
 async function uploadFiles(files) {
-    if (!files.length || !laptopIp || !token) return;
-
+    if (!files.length || !state.isConnected) return;
     setPane('transfers');
-
-    for (const file of files) {
-        await uploadSingleFile(file);
-    }
-
-    fileInput.value = '';
+    for (const file of files) await uploadSingleFile(file);
+    dom.fileInput.value = '';
     hideToast();
-    loadRemoteFiles(currentPath);
+    loadRemoteFiles(state.currentPath);
 }
 
 function uploadSingleFile(file) {
     return new Promise((resolve) => {
-        const id       = `upload-${file.name}-${Date.now()}`;
+        const id = `upload-${file.name}-${Date.now()}`;
         const formData = new FormData();
         formData.append('file', file, file.name);
 
-        recordTransfer({ id, name: file.name, status: 'queued', transferred: 0, total: file.size });
+        recordTransfer({ id, name: file.name, status: 'uploading', transferred: 0, total: file.size });
         showToast(file.name, 0);
 
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `http://${laptopIp}:3000/api/upload?path=${encodeURIComponent(currentPath)}&token=${token}`);
+        xhr.open('POST', `http://${state.laptopIp}:3000/api/upload?path=${encodeURIComponent(state.currentPath)}&token=${state.token}`);
 
         xhr.upload.onprogress = (e) => {
             const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
-            recordTransfer({ id, name: file.name, status: 'uploading', transferred: e.loaded, total: e.total || file.size });
+            recordTransfer({ id, name: file.name, status: 'uploading', transferred: e.loaded, total: e.total });
             showToast(file.name, pct);
         };
 
@@ -440,129 +474,62 @@ function uploadSingleFile(file) {
 }
 
 function showToast(name, pct) {
-    uploadToastLabel.textContent = pct === 100
-        ? `✓ ${name} done`
-        : `Uploading ${name}… ${pct}%`;
-    uploadToastFill.style.width = `${pct}%`;
-    uploadToast.classList.add('visible');
+    dom.uploadToastLabel.textContent = pct === 100 ? `✓ ${name} done` : `Uploading ${name}… ${pct}%`;
+    dom.uploadToastFill.style.width = `${pct}%`;
+    dom.uploadToast.classList.add('visible');
+    dom.uploadToast.classList.remove('opacity-0', 'translate-y-20');
+    if (pct === 100) setTimeout(hideToast, 3000);
 }
 
-function hideToast() {
-    uploadToast.classList.remove('visible');
+function hideToast() { 
+    dom.uploadToast.classList.add('opacity-0', 'translate-y-20');
+    setTimeout(() => dom.uploadToast.classList.remove('visible'), 300);
 }
 
-/* ── Session reset ────────────────────────────────────────── */
-function resetSession() {
-    stopScanner();
-    currentPath = '/';
-    token = '';
-    laptopIp = '';
-    currentItems = [];
-    uploads.clear();
-    mobileSearch.value = '';
-    currentPathMobile.textContent = '/';
-    currentDirLabel.textContent   = 'Workstation';
-    sessionLabel.textContent      = '● Connected locally';
-    settingsHost.textContent      = 'Not connected';
-    settingsFolder.textContent    = '/';
-    btnBackDir.disabled           = true;
-    browseCount.textContent       = '0 items';
-    fileList.innerHTML            = '';
-    renderTransfers();
-    hideToast();
-
-    browserScreen.classList.add('hidden');
-    connectScreen.classList.remove('hidden');
-    btnScanStart.textContent = 'Start Camera Scan';
-    btnScanStart.disabled    = false;
-
-    gsap.fromTo('#connect-window',
-        { opacity: 0, y: 32, scale: 0.96 },
-        { duration: 0.6, opacity: 1, y: 0, scale: 1, ease: 'expo.out' }
-    );
+function getIconColor(kind) {
+    switch (kind) {
+        case 'folder': return 'amber';
+        case 'image': return 'blue';
+        case 'video': return 'purple';
+        case 'audio': return 'rose';
+        case 'archive': return 'orange';
+        case 'document': return 'emerald';
+        default: return 'slate';
+    }
 }
 
 /* ── Helpers ──────────────────────────────────────────────── */
 function getFileIcon(kind) {
     const icons = {
-        folder:   `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffb830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
-        image:    `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
-        video:    `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
-        audio:    `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
-        archive:  `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
-        document: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
-        file:     `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`,
+        folder:   'folder',
+        image:    'image',
+        video:    'video',
+        audio:    'music',
+        archive:  'archive',
+        document: 'file-text',
+        file:     'file',
     };
-    return icons[kind] || icons.file;
+    const icon = icons[kind] || icons.file;
+    return `<i data-lucide="${icon}" class="w-5 h-5"></i>`;
 }
 
 function formatSize(bytes) {
-    if (!bytes) return '--';
-    const units = ['B','KB','MB','GB','TB'];
+    if (!bytes) return '0 B';
+    const units = ['B','KB','MB','GB'];
     let v = bytes, i = 0;
     while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
-    return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+    return `${v.toFixed(1)} ${units[i]}`;
 }
 
-function escapeHtml(v) {
-    return String(v)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
+function escapeHtml(v) { return String(v).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); }
+function basename(path) { return path.split(/[\\/]/).filter(Boolean).pop() || ''; }
+function shorten(path) { return path.length > 20 ? '...' + path.slice(-17) : path; }
+function parentPath(path) { 
+    const p = path.split(/[\\/]/).filter(Boolean);
+    p.pop();
+    return p.length === 0 ? '/' : '/' + p.join('/');
 }
-
-function basename(path) {
-    const n = String(path).replace(/\\/g, '/').replace(/\/$/, '');
-    if (/^[A-Za-z]:$/.test(n)) return n;
-    return n.split('/').filter(Boolean).at(-1) || path;
-}
-
-function shorten(path) {
-    if (!path || path === '/') return '/';
-    const parts = String(path).replace(/\\/g, '/').replace(/\/$/, '').split('/').filter(Boolean);
-    return parts.length <= 2 ? path : `…/${parts.slice(-2).join('/')}`;
-}
-
-function parentPath(path) {
-    const n = String(path).replace(/\\/g, '/').replace(/\/$/, '');
-    if (n === '/' || /^[A-Za-z]:$/.test(n)) return path;
-    const parts = n.split('/').filter(Boolean);
-    if (!parts.length) return '/';
-    if (/^[A-Za-z]:$/.test(parts[0])) {
-        parts.pop();
-        return parts.length === 1 ? `${parts[0]}/` : parts.join('/');
-    }
-    parts.pop();
-    return `/${parts.join('/')}` || '/';
-}
-
-function isRootPath(path) {
-    const n = String(path).replace(/\\/g, '/').replace(/\/$/, '');
-    return n === '' || n === '/' || /^[A-Za-z]:$/.test(n);
-}
-
-/* ── Event wiring ─────────────────────────────────────────── */
-btnScanStart.addEventListener('click', startScan);
-btnBackDir.addEventListener('click', () => {
-    if (!isRootPath(currentPath)) {
-        mobileSearch.value = '';
-        clearMobileSearchBtn.classList.add('hidden');
-        loadRemoteFiles(parentPath(currentPath));
-    }
-});
-btnUpload.addEventListener('click', () => fileInput.click());
-btnRescan.addEventListener('click', resetSession);
-fileInput.addEventListener('change', () => uploadFiles([...fileInput.files]));
-mobileSearch.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => renderFiles(filterCurrentItems()), 100);
-});
-clearMobileSearchBtn.addEventListener('click', () => {
-    mobileSearch.value = '';
-    renderFiles(filterCurrentItems());
-});
-dockItems.forEach((item) => item.addEventListener('click', () => setPane(item.dataset.pane)));
+function isRootPath(path) { return path === '/' || !path || path.endsWith(':'); }
 
 init();
+

@@ -127,22 +127,45 @@ function renderFiles(files) {
     fileCountEl.textContent = `${files.length} item${files.length === 1 ? '' : 's'}`;
     fileSummaryEl.textContent = `${folderCount} folder${folderCount === 1 ? '' : 's'} and ${fileCount} file${fileCount === 1 ? '' : 's'} in view.`;
 
+    const isList = currentView === 'list';
+    fileBrowser.className = isList 
+        ? 'flex flex-col gap-2' 
+        : 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4';
+
     files.forEach((file, i) => {
         const item = document.createElement('button');
         item.type = 'button';
-        item.className = 'file-item';
-        item.style.animationDelay = `${i * 28}ms`;
-        item.innerHTML = `
-            <div class="file-icon-wrap kind-${file.kind}">${getFileIcon(file.kind)}</div>
-            <div class="file-main">
-                <div class="file-name">${escapeHtml(file.name)}</div>
-                <div class="file-meta">
-                    <span class="file-kind">${labelKind(file.kind)}</span>
-                    <span class="file-size">${formatSize(file.size)}</span>
-                    <span class="file-date">${formatDate(file.modified)}</span>
+        item.className = `file-item group relative flex ${isList ? 'flex-row items-center gap-4 p-3' : 'flex-col p-5'} glass rounded-2xl border border-white/5 text-left`;
+        item.style.animation = `cellIn 0.3s ease-out both ${i * 20}ms`;
+        
+        const iconColor = getIconColor(file.kind);
+        
+        item.innerHTML = isList ? `
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-${iconColor}-500/10 text-${iconColor}-400">
+                ${getFileIcon(file.kind)}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold text-white truncate">${escapeHtml(file.name)}</div>
+                <div class="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase mt-0.5">
+                    <span>${labelKind(file.kind)}</span>
+                    <span class="w-1 h-1 rounded-full bg-slate-800"></span>
+                    <span>${formatSize(file.size)}</span>
                 </div>
             </div>
-            <div class="file-action">${file.kind === 'folder' ? 'Open →' : 'On network'}</div>
+            <div class="text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">
+                ${file.kind === 'folder' ? 'Open' : 'Link Live'}
+            </div>
+        ` : `
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-${iconColor}-500/10 text-${iconColor}-400 group-hover:bg-${iconColor}-500 group-hover:text-white transition-all">
+                ${getFileIcon(file.kind)}
+            </div>
+            <div class="text-xs font-bold text-white truncate mb-1">${escapeHtml(file.name)}</div>
+            <div class="text-[10px] text-slate-500 font-bold uppercase">${formatSize(file.size)}</div>
+            <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <div class="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center">
+                    <i data-lucide="${file.kind === 'folder' ? 'arrow-right' : 'link'}" class="w-3 h-3"></i>
+                 </div>
+            </div>
         `;
 
         item.addEventListener('click', () => handleFileClick(file, item));
@@ -150,37 +173,16 @@ function renderFiles(files) {
     });
 }
 
-function handleFileClick(file, item) {
-    document.querySelectorAll('.file-item.is-selected').forEach((node) => {
-        node.classList.remove('is-selected');
-    });
-    item.classList.add('is-selected');
-    selectedPath = file.path;
-
-    if (file.kind === 'folder') {
-        searchInput.value = '';
-        clearSearchBtn.classList.add('hidden');
-        isSearching = false;
-        browserCaption.textContent = `Browsing ${file.name}. Files inside this folder are exposed to the connected phone.`;
-        loadFiles(file.path);
-        return;
+function getIconColor(kind) {
+    switch (kind) {
+        case 'folder': return 'amber';
+        case 'image': return 'blue';
+        case 'video': return 'purple';
+        case 'audio': return 'rose';
+        case 'archive': return 'orange';
+        case 'document': return 'emerald';
+        default: return 'slate';
     }
-
-    browserCaption.textContent = `${file.name} is ready for the mobile client to download through the current link.`;
-}
-
-function updatePathDisplay() {
-    currentPathEl.textContent = currentPath;
-    currentDirLabel.textContent = basename(currentPath) || currentPath;
-    btnBack.disabled = isRootPath(currentPath);
-}
-
-function setView(mode) {
-    currentView = mode;
-    fileBrowser.classList.toggle('grid-view', mode === 'grid');
-    fileBrowser.classList.toggle('list-view', mode === 'list');
-    btnGrid.classList.toggle('is-active', mode === 'grid');
-    btnList.classList.toggle('is-active', mode === 'list');
 }
 
 function updateTransferUI(data) {
@@ -199,7 +201,8 @@ function updateTransferUI(data) {
     transfers.set(data.id, existing);
 
     if (existing.status === 'transferring' || existing.status === 'done') {
-        connectionStatusEl.textContent = 'Phone activity detected';
+        connectionStatusEl.textContent = 'Phone Active';
+        connectionStatusEl.className = 'px-2 py-0.5 rounded-full bg-emerald-500/20 text-[9px] font-black uppercase text-emerald-500';
     }
 
     const ordered = [...transfers.values()].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -207,32 +210,40 @@ function updateTransferUI(data) {
 
     const activeTransfers = ordered.filter((entry) => entry.status === 'transferring').length;
     transferSummaryEl.textContent = activeTransfers > 0
-        ? `${activeTransfers} active upload${activeTransfers === 1 ? '' : 's'} in progress.`
-        : 'Recent uploads remain visible here.';
+        ? `${activeTransfers} uploads in progress.`
+        : 'Session history remains visible.';
 
     transferList.innerHTML = ordered.map((entry) => {
         const isDone = entry.status === 'done';
         const isFailed = entry.status === 'failed';
-        const progressClass = isDone ? '' : 'is-indeterminate';
-        const progressWidth = isDone ? '100%' : '38%';
+        const pct = isDone ? 100 : 38;
 
         return `
-            <article class="transfer-item">
-                <div class="transfer-row">
-                    <div class="transfer-name">${escapeHtml(entry.filename)}</div>
-                    <span class="transfer-status ${escapeHtml(entry.status)}">${escapeHtml(entry.status)}</span>
+            <article class="glass p-4 rounded-2xl border border-white/5 flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isDone ? 'bg-emerald-500 text-white' : 'bg-blue-500/10 text-blue-400'}">
+                    <i data-lucide="${isDone ? 'check' : 'upload-cloud'}" class="w-5 h-5"></i>
                 </div>
-                <div class="transfer-meta">
-                    <span>${formatSize(entry.transferred)}</span>
-                    <span>${isFailed ? 'Upload failed' : isDone ? 'Upload complete' : 'Receiving from phone'}</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill ${progressClass}" style="width:${progressWidth};"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <div class="text-xs font-bold text-white truncate mr-4">${escapeHtml(entry.filename)}</div>
+                        <span class="text-[9px] font-black uppercase tracking-widest ${isDone ? 'text-emerald-500' : 'text-blue-400'}">${escapeHtml(entry.status)}</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full ${isDone ? 'bg-emerald-500' : 'bg-blue-500 animate-pulse'} transition-all duration-500" style="width:${pct}%"></div>
+                    </div>
                 </div>
             </article>
         `;
     }).join('');
 }
+
+function setView(mode) {
+    currentView = mode;
+    btnGrid.className = `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${mode === 'grid' ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-white'}`;
+    btnList.className = `w-9 h-9 rounded-lg flex items-center justify-center transition-all ${mode === 'list' ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-white'}`;
+    renderFiles(currentItems);
+}
+
 
 function triggerSearch() {
     const query = searchInput.value.trim();
@@ -368,15 +379,16 @@ function labelKind(kind) {
 
 function getFileIcon(kind) {
     const icons = {
-        folder:   `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffb830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
-        image:    `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
-        video:    `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
-        audio:    `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fb7185" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
-        archive:  `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
-        document: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
-        file:     `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`,
+        folder:   'folder',
+        image:    'image',
+        video:    'video',
+        audio:    'music',
+        archive:  'archive',
+        document: 'file-text',
+        file:     'file',
     };
-    return icons[kind] || icons.file;
+    const icon = icons[kind] || icons.file;
+    return `<i data-lucide="${icon}" class="w-full h-full"></i>`;
 }
 
 function escapeHtml(value) {

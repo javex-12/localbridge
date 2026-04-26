@@ -3,1016 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#080b12">
+    <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>LocalBridge Mobile</title>
+    <title>LocalBridge — Mobile</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="gsap.js"></script>
     <script src="jsQR.js"></script>
     <style>
-    /* ═══════════════════════════════════════════════
-       TOKENS
-    ═══════════════════════════════════════════════ */
-    :root {
-        --bg:            #080b12;
-        --surface:       rgba(255,255,255,0.06);
-        --surface-hov:   rgba(255,255,255,0.09);
-        --border:        rgba(255,255,255,0.10);
-        --border-str:    rgba(255,255,255,0.18);
-        --border-acc:    rgba(10,132,255,0.38);
-        --text-pri:      #eef2ff;
-        --text-sec:      #8a9ab8;
-        --text-mut:      #4e5d7a;
-        --accent:        #0a84ff;
-        --acc-glow:      rgba(10,132,255,0.30);
-        --acc-soft:      rgba(10,132,255,0.13);
-        --acc-text:      #a8d4ff;
-        --green:         #30d158;
-        --green-soft:    rgba(48,209,88,0.13);
-        --green-text:    #a7f3bc;
-        --yellow:        #ffd60a;
-        --red:           #ff5f57;
-        --r-sm:  10px;
-        --r-md:  16px;
-        --r-lg:  22px;
-        --r-xl:  28px;
-        --r-2xl: 36px;
-        --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
-        --ease-out:    cubic-bezier(0.22,1,0.36,1);
-        --topbar-h: 64px;
-        --toolbar-h: 52px;
-        --dock-h: 74px;
-        --safe-bot: env(safe-area-inset-bottom, 0px);
-    }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
 
-    /* ═══════════════════════════════════════════════
-       RESET
-    ═══════════════════════════════════════════════ */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { height: 100%; }
-    body {
-        height: 100%;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 14px;
-        color: var(--text-pri);
-        background: var(--bg);
-        -webkit-font-smoothing: antialiased;
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-    }
-    button, input { font: inherit; color: inherit; }
-    button { border: none; background: none; cursor: pointer; }
-    input  { border: none; outline: none; background: none; }
-    svg    { display: block; flex-shrink: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    /* ═══════════════════════════════════════════════
-       APP SHELL + AMBIENT ORBS
-    ═══════════════════════════════════════════════ */
-    #app { position: relative; height: 100%; overflow: hidden; }
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
 
-    .mesh {
-        position: fixed;
-        border-radius: 50%;
-        filter: blur(90px);
-        pointer-events: none;
-        animation: meshDrift 22s ease-in-out infinite alternate;
-        z-index: 0;
-    }
-    .mesh-one {
-        width: 380px; height: 380px;
-        top: -140px; left: -100px;
-        background: radial-gradient(circle, rgba(80,60,255,0.55), rgba(40,80,255,0.15));
-    }
-    .mesh-two {
-        width: 340px; height: 340px;
-        right: -120px; bottom: -100px;
-        background: radial-gradient(circle, rgba(10,132,255,0.40), rgba(0,210,230,0.10));
-        animation-duration: 26s;
-        animation-delay: -10s;
-    }
-    @keyframes meshDrift {
-        0%   { transform: translate(0,0) scale(1); }
-        50%  { transform: translate(24px,-18px) scale(1.06); }
-        100% { transform: translate(-16px,22px) scale(0.94); }
-    }
+        .pane {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
 
-    /* ═══════════════════════════════════════════════
-       GLASS
-    ═══════════════════════════════════════════════ */
-    .glass-panel {
-        background: linear-gradient(135deg,
-            rgba(255,255,255,0.09) 0%,
-            rgba(255,255,255,0.04) 100%);
-        border: 1px solid var(--border);
-        box-shadow: 0 20px 55px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.08);
-        backdrop-filter: blur(36px) saturate(180%);
-        -webkit-backdrop-filter: blur(36px) saturate(180%);
-    }
+        .pane.hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
 
-    /* ═══════════════════════════════════════════════
-       SCREENS  — critical: use display:none for hidden
-    ═══════════════════════════════════════════════ */
-    .screen {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        z-index: 1;
-    }
-    .hidden { display: none !important; }
+        .mesh-gradient {
+            background: radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.15) 0%, transparent 50%);
+        }
 
-    /* ═══════════════════════════════════════════════
-       CONNECT SCREEN
-    ═══════════════════════════════════════════════ */
-    #connect-screen {
-        display: flex;
-        align-items: flex-end;
-        background: rgba(0,0,0,0.6);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-    }
+        .scanner-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #10b981, transparent);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+            animation: scan 2s ease-in-out infinite;
+        }
 
-    .connect-window {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        max-width: 100%;
-        border-radius: var(--r-2xl) var(--r-2xl) 0 0;
-        overflow: hidden;
-        border-bottom: none;
-    }
-    
-    .category-card:active {
-        transform: scale(0.96);
-    }
-    .category-card:hover {
-        border-color: var(--border-acc) !important;
-        background: var(--surface-hov) !important;
-    }
+        @keyframes scan {
+            0%, 100% { top: 5%; }
+            50% { top: 95%; }
+        }
 
-    .window-bar {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 14px 18px;
-        border-bottom: 1px solid var(--border);
-        background: rgba(255,255,255,0.03);
-    }
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
 
-    .traffic-lights { display: flex; gap: 7px; }
-    .light {
-        width: 12px; height: 12px;
-        border-radius: 50%;
-        position: relative;
-    }
-    .light::after {
-        content: '';
-        position: absolute; inset: 2px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.32);
-    }
-    .light.close    { background: var(--red);    box-shadow: 0 0 8px rgba(255,95,87,0.5); }
-    .light.minimize { background: var(--yellow); box-shadow: 0 0 8px rgba(255,214,10,0.4); }
-    .light.expand   { background: var(--green);  box-shadow: 0 0 8px rgba(48,209,88,0.4); }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
 
-    .window-title {
-        font-size: 0.80rem;
-        font-weight: 700;
-        color: var(--text-sec);
-    }
-
-    .connect-body {
-        padding: 28px 24px 32px;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .app-mark {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 52px; height: 52px;
-        border-radius: 16px;
-        background: linear-gradient(135deg, #1a90ff, #0a84ff);
-        box-shadow: 0 10px 30px rgba(10,132,255,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
-        font-size: 1.1rem;
-        font-weight: 900;
-        color: #fff;
-        letter-spacing: -0.04em;
-        margin-bottom: 18px;
-    }
-
-    .eyebrow {
-        display: block;
-        color: var(--text-mut);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-size: 0.66rem;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-
-    .connect-body h1 {
-        font-size: 2.2rem;
-        font-weight: 900;
-        letter-spacing: -0.05em;
-        background: linear-gradient(135deg, #ffffff 10%, #a0cbf7);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 8px;
-    }
-
-    .lead {
-        font-size: 0.94rem;
-        line-height: 1.6;
-        color: var(--text-sec);
-        margin-bottom: 30px;
-    }
-
-    /* scanner */
-    .scanner-shell {
-        position: relative;
-        width: 100%;
-        max-width: 340px;
-        aspect-ratio: 1;
-        margin: 0 auto 24px;
-        border-radius: var(--r-xl);
-        overflow: hidden;
-        background: radial-gradient(circle, rgba(10,132,255,0.1), transparent 70%), #000;
-        box-shadow: 0 0 0 2px rgba(255,255,255,0.06), 0 20px 40px rgba(0,0,0,0.5);
-    }
-    .scanner-shell::before {
-        content: '';
-        position: absolute; inset: 0;
-        border-radius: 50%;
-        border: 2px solid rgba(10,132,255,0.3);
-        transform: scale(0.1);
-        opacity: 0;
-        animation: radarPulse 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-        z-index: 10;
-        pointer-events: none;
-    }
-    @keyframes radarPulse {
-        0% { transform: scale(0.1); opacity: 0; }
-        50% { opacity: 1; }
-        100% { transform: scale(2.5); opacity: 0; }
-    }
-    #scanner-video {
-        width: 100%; height: 100%;
-        object-fit: cover;
-        display: block;
-        opacity: 0.8;
-    }
-    .scanner-overlay {
-        position: absolute; inset: 0;
-        background: rgba(0,0,0,0.40);
-        z-index: 5;
-    }
-    .scanner-line {
-        position: absolute;
-        left: 0; right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, transparent, #0a84ff, #80e4ff, #0a84ff, transparent);
-        box-shadow: 0 0 20px #0a84ff, 0 0 40px #80e4ff;
-        animation: scanLine 2.5s ease-in-out infinite;
-        z-index: 20;
-    }
-    @keyframes scanLine {
-        0%   { top: 5%; opacity: 0; }
-        15%  { opacity: 1; }
-        85%  { opacity: 1; }
-        100% { top: 95%; opacity: 0; }
-    }
-    .scanner-corners {
-        position: absolute;
-        inset: 15%;
-        pointer-events: none;
-        z-index: 20;
-    }
-    .scanner-corners span {
-        position: absolute;
-        width: 32px; height: 32px;
-        border-color: #fff;
-        border-style: solid;
-        border-width: 0;
-        box-shadow: 0 0 10px rgba(10,132,255,0.5);
-    }
-    .scanner-corners span:nth-child(1) { top:0; left:0;   border-top-width:4px; border-left-width:4px;   border-radius:10px 0 0 0; }
-    .scanner-corners span:nth-child(2) { top:0; right:0;  border-top-width:4px; border-right-width:4px;  border-radius:0 10px 0 0; }
-    .scanner-corners span:nth-child(3) { bottom:0; left:0;  border-bottom-width:4px; border-left-width:4px;  border-radius:0 0 0 10px; }
-    .scanner-corners span:nth-child(4) { bottom:0; right:0; border-bottom-width:4px; border-right-width:4px; border-radius:0 0 10px 0; }
-
-    /* setup pills */
-    .setup-pills {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-bottom: 16px;
-    }
-    .setup-pill {
-        padding: 10px 12px;
-        border-radius: var(--r-md);
-        background: var(--surface);
-        border: 1px solid var(--border);
-        font-size: 0.74rem;
-        font-weight: 600;
-        color: var(--text-sec);
-        text-align: center;
-        transition: all 0.15s ease;
-    }
-    .setup-pill.ok   { color: var(--green-text); background: var(--green-soft); border-color: rgba(48,209,88,0.22); }
-    .setup-pill.fail { color: #ffb0ab; background: rgba(255,95,87,0.12); border-color: rgba(255,95,87,0.22); }
-
-    /* primary CTA */
-    .primary-btn {
-        width: 100%;
-        padding: 16px;
-        border-radius: var(--r-lg);
-        background: linear-gradient(135deg, #1a90ff 0%, #0a84ff 100%);
-        color: #fff;
-        font-size: 0.96rem;
-        font-weight: 800;
-        box-shadow: 0 10px 28px rgba(10,132,255,0.38), inset 0 1px 0 rgba(255,255,255,0.22);
-        transition: all 0.14s var(--ease-spring);
-        letter-spacing: -0.01em;
-    }
-    .primary-btn:hover  { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(10,132,255,0.50); }
-    .primary-btn:active { transform: scale(0.98); }
-
-    /* ═══════════════════════════════════════════════
-       BROWSER SCREEN
-    ═══════════════════════════════════════════════ */
-    #browser-screen {
-        display: flex;
-        flex-direction: column;
-        background:
-            radial-gradient(ellipse at top right, rgba(10,80,255,0.10), transparent 55%),
-            var(--bg);
-    }
-
-    /* topbar */
-    .topbar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0 14px;
-        height: var(--topbar-h);
-        flex-shrink: 0;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        border-top: none;
-        z-index: 10;
-    }
-    .topbar-copy { flex: 1; min-width: 0; }
-    .topbar-copy .eyebrow { margin-bottom: 2px; font-size: 0.60rem; }
-    .topbar-copy h2 {
-        font-size: 1.0rem;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .session-label { font-size: 0.68rem; color: var(--green); font-weight: 600; }
-
-    /* toolbar */
-    .toolbar {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 14px;
-        height: var(--toolbar-h);
-        flex-shrink: 0;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        border-top: none;
-        z-index: 9;
-    }
-    .path-chip {
-        flex-shrink: 0;
-        padding: 6px 12px;
-        border-radius: 999px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
-        font-size: 0.70rem;
-        color: var(--text-sec);
-        max-width: 110px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .search-field {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex: 1;
-        height: 36px;
-        padding: 0 12px;
-        border-radius: var(--r-md);
-        background: var(--surface);
-        border: 1px solid var(--border);
-        cursor: text;
-        transition: all 0.14s ease;
-    }
-    .search-field:focus-within {
-        border-color: var(--border-acc);
-        box-shadow: 0 0 0 3px rgba(10,132,255,0.12);
-    }
-    .search-field input { flex: 1; font-size: 0.82rem; color: var(--text-pri); min-width: 0; }
-    .search-field input::placeholder { color: var(--text-mut); }
-
-    /* panes */
-    .pane {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 14px;
-        padding-bottom: calc(var(--dock-h) + var(--safe-bot) + 14px);
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255,255,255,0.08) transparent;
-    }
-    .pane-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 14px;
-    }
-    .pane-head .eyebrow { margin-bottom: 2px; }
-    .pane-head h3 {
-        font-size: 1.0rem;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-    }
-
-    /* FILE GRID */
-    .file-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0,1fr));
-        gap: 10px;
-    }
-    .file-cell {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 14px;
-        border-radius: var(--r-lg);
-        background: var(--surface);
-        border: 1px solid var(--border);
-        cursor: pointer;
-        text-align: left;
-        transition: all 0.14s var(--ease-spring);
-        animation: cellIn 0.25s var(--ease-out) both;
-    }
-    @keyframes cellIn {
-        from { opacity:0; transform:scale(0.94) translateY(10px); }
-        to   { opacity:1; transform:scale(1) translateY(0); }
-    }
-    .file-cell:hover  { background: var(--surface-hov); border-color: var(--border-str); transform: scale(0.98); }
-    .file-cell:active { transform: scale(0.96); }
-
-    .file-cell-icon {
-        display: inline-grid;
-        place-items: center;
-        width: 44px; height: 44px;
-        border-radius: 13px;
-        flex-shrink: 0;
-    }
-    .file-cell-icon.kind-folder   { background:rgba(255,180,40,0.14);  border:1px solid rgba(255,180,40,0.20); }
-    .file-cell-icon.kind-image    { background:rgba(10,200,255,0.14);  border:1px solid rgba(10,200,255,0.20); }
-    .file-cell-icon.kind-video    { background:rgba(180,50,255,0.14);  border:1px solid rgba(180,50,255,0.20); }
-    .file-cell-icon.kind-audio    { background:rgba(255,80,120,0.14);  border:1px solid rgba(255,80,120,0.20); }
-    .file-cell-icon.kind-archive  { background:rgba(255,140,50,0.14);  border:1px solid rgba(255,140,50,0.20); }
-    .file-cell-icon.kind-document { background:rgba(80,200,120,0.14);  border:1px solid rgba(80,200,120,0.20); }
-    .file-cell-icon.kind-file     { background:var(--surface);          border:1px solid var(--border); }
-
-    .file-cell-body { min-width: 0; }
-    .file-cell-name {
-        font-size: 0.78rem; font-weight: 700;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        color: var(--text-pri);
-    }
-    .file-cell-size { font-size: 0.68rem; color: var(--text-mut); margin-top: 2px; }
-    .file-cell-thumb {
-        width: 100%; aspect-ratio: 4/3;
-        border-radius: var(--r-sm);
-        object-fit: cover;
-        display: block;
-    }
-
-    /* round buttons */
-    .round-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px; height: 40px;
-        border-radius: 50%;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        flex-shrink: 0;
-        transition: all 0.14s var(--ease-spring);
-    }
-    .round-btn:hover  { background: var(--surface-hov); transform: scale(1.08); }
-    .round-btn:active { transform: scale(0.94); }
-    .round-btn-accent {
-        background: linear-gradient(135deg, #1a90ff, #0a84ff);
-        border-color: rgba(10,132,255,0.30);
-        box-shadow: 0 6px 20px rgba(10,132,255,0.38);
-        color: #fff;
-    }
-    .round-btn-accent:hover { box-shadow: 0 10px 28px rgba(10,132,255,0.55); }
-
-    /* ghost btn */
-    .ghost-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 7px 13px;
-        border-radius: 999px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        font-size: 0.74rem;
-        font-weight: 700;
-        color: var(--text-sec);
-        transition: all 0.14s ease;
-    }
-    .ghost-btn:hover { background: var(--surface-hov); border-color: var(--border-str); }
-
-    /* TRANSFERS PANE */
-    .transfer-list { display: grid; gap: 10px; }
-    .transfer-empty {
-        padding: 24px 20px;
-        border-radius: var(--r-lg);
-        background: var(--surface);
-        border: 1px dashed var(--border);
-        text-align: center;
-    }
-    .transfer-empty strong { font-size: 0.9rem; }
-    .transfer-empty p { font-size: 0.78rem; color: var(--text-sec); margin-top: 6px; }
-
-    .transfer-item {
-        padding: 14px 16px;
-        border-radius: var(--r-lg);
-        background: var(--surface);
-        border: 1px solid var(--border);
-        animation: cellIn 0.25s var(--ease-out) both;
-    }
-    .transfer-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-    }
-    .transfer-icon {
-        display: inline-grid;
-        place-items: center;
-        width: 36px; height: 36px;
-        border-radius: 10px;
-        background: var(--acc-soft);
-        color: var(--acc-text);
-        flex-shrink: 0;
-    }
-    .transfer-info { flex: 1; min-width: 0; }
-    .transfer-name {
-        font-size: 0.84rem; font-weight: 700;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .transfer-sub { margin-top: 3px; font-size: 0.70rem; color: var(--text-sec); }
-    .transfer-status {
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 0.68rem;
-        font-weight: 700;
-        text-transform: capitalize;
-        letter-spacing: 0.04em;
-        background: var(--surface);
-        flex-shrink: 0;
-    }
-    .transfer-status.done        { background:var(--green-soft); color:var(--green-text); }
-    .transfer-status.failed      { background:rgba(255,95,87,0.13); color:#ffb0ab; }
-    .transfer-status.uploading   { background:var(--acc-soft); color:var(--acc-text); }
-
-    .progress-bar {
-        margin-top: 10px;
-        height: 4px;
-        border-radius: 999px;
-        overflow: hidden;
-        background: rgba(255,255,255,0.06);
-    }
-    .progress-fill {
-        height: 100%;
-        width: 0;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #60b0ff, #0a84ff, #80e4ff);
-        box-shadow: 0 0 10px rgba(10,132,255,0.45);
-        transition: width 0.4s ease;
-    }
-    .progress-fill.is-indeterminate {
-        width: 40%;
-        animation: indeterminate 1.4s ease-in-out infinite;
-    }
-    @keyframes indeterminate {
-        0%   { transform: translateX(-140%); }
-        100% { transform: translateX(340%); }
-    }
-
-    /* SETTINGS PANE */
-    .settings-stack { display: grid; gap: 12px; }
-    .glass-panel-inner {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid var(--border);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-    }
-    .settings-card { padding: 16px 18px; border-radius: var(--r-lg); }
-    .settings-label {
-        display: block;
-        font-size: 0.66rem; font-weight: 700;
-        text-transform: uppercase; letter-spacing: 0.12em;
-        color: var(--text-mut); margin-bottom: 6px;
-    }
-    .settings-card strong {
-        display: block;
-        font-size: 0.9rem; font-weight: 700;
-        word-break: break-all; margin-bottom: 8px;
-    }
-    .settings-card p { font-size: 0.76rem; color: var(--text-sec); line-height: 1.55; }
-    .settings-actions { margin-top: 4px; }
-
-    /* DOCK */
-    .dock {
-        position: absolute;
-        bottom: 0; left: 0; right: 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-        height: calc(var(--dock-h) + var(--safe-bot));
-        padding-bottom: var(--safe-bot);
-        padding-left: 16px; padding-right: 16px;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        border-bottom: none;
-        z-index: 20;
-    }
-    .dock-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        padding: 8px 16px;
-        border-radius: var(--r-md);
-        color: var(--text-mut);
-        font-size: 0.60rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        transition: all 0.14s var(--ease-spring);
-        flex: 1;
-        max-width: 90px;
-    }
-    .dock-item:hover  { color: var(--text-sec); transform: translateY(-2px); }
-    .dock-item:active { transform: scale(0.92); }
-    .dock-item.is-active { color: var(--accent); }
-    .dock-item.is-active svg { filter: drop-shadow(0 0 8px rgba(10,132,255,0.6)); }
-    .dock-indicator {
-        display: block;
-        width: 4px; height: 4px;
-        border-radius: 50%;
-        background: var(--accent);
-        opacity: 0;
-        transition: opacity 0.14s ease;
-    }
-    .dock-item.is-active .dock-indicator { opacity: 1; }
-
-    /* EMPTY STATE */
-    .empty-state {
-        padding: 40px 20px;
-        text-align: center;
-        border-radius: var(--r-xl);
-        border: 1px dashed var(--border);
-        background: rgba(255,255,255,0.02);
-        margin-top: 10px;
-    }
-    .empty-state h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
-    .empty-state p  { font-size: 0.80rem; color: var(--text-sec); line-height: 1.5; }
-
-    /* UPLOAD TOAST */
-    .upload-toast {
-        position: fixed;
-        bottom: calc(var(--dock-h) + var(--safe-bot) + 10px);
-        left: 14px; right: 14px;
-        padding: 14px 16px;
-        border-radius: var(--r-lg);
-        background: rgba(10,132,255,0.18);
-        border: 1px solid rgba(10,132,255,0.30);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        transform: translateY(20px);
-        opacity: 0;
-        transition: all 0.3s var(--ease-spring);
-        z-index: 50;
-        pointer-events: none;
-    }
-    .upload-toast.visible { transform: translateY(0); opacity: 1; }
-    .upload-toast-bar {
-        flex: 1;
-        height: 4px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.14);
-        overflow: hidden;
-    }
-    .upload-toast-fill {
-        height: 100%;
-        background: var(--accent);
-        border-radius: inherit;
-        transition: width 0.3s ease;
-    }
-
-    /* skeleton shimmer */
-    @keyframes shimmer {
-        to { background-position: 200% center; }
-    }
-    .skeleton {
-        background: linear-gradient(90deg,
-            rgba(255,255,255,0.04) 25%,
-            rgba(255,255,255,0.09) 50%,
-            rgba(255,255,255,0.04) 75%);
-        background-size: 200% auto;
-        animation: shimmer 1.5s linear infinite;
-        border-radius: 8px;
-    }
-
-    #file-input  { display: none; }
-    #scanner-canvas { display: none; }
+        .dock-item.is-active {
+            color: #10b981;
+        }
+        
+        .dock-item.is-active .indicator {
+            opacity: 1;
+            transform: scale(1);
+        }
     </style>
 </head>
-<body>
-<div id="app">
-    <div class="mesh mesh-one" aria-hidden="true"></div>
-    <div class="mesh mesh-two" aria-hidden="true"></div>
+<body class="mesh-gradient min-h-screen select-none overflow-hidden">
 
-    <!-- ═══ CONNECT SCREEN (MODAL OVERLAY) ═══════════════════════════════ -->
-    <section id="connect-screen" class="screen hidden" style="z-index: 100;">
-        <div id="connect-window" class="connect-window glass-panel">
-            <div class="window-bar">
-                <div class="traffic-lights" aria-hidden="true">
-                    <span class="light close"></span>
-                    <span class="light minimize"></span>
-                    <span class="light expand"></span>
+<div id="app" class="relative h-screen flex flex-col">
+    
+    <!-- ═══ CONNECT SCREEN OVERLAY ═══════════════════════════════ -->
+    <section id="connect-screen" class="fixed inset-0 z-[100] flex items-end bg-black/80 backdrop-blur-sm hidden">
+        <div id="connect-window" class="w-full glass rounded-t-[32px] p-6 pb-12 translate-y-full">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex gap-2">
+                    <span class="light w-3 h-3 rounded-full bg-red-500 close"></span>
+                    <span class="light w-3 h-3 rounded-full bg-yellow-500"></span>
+                    <span class="light w-3 h-3 rounded-full bg-green-500"></span>
                 </div>
-                <span class="window-title">Pairing Assistant</span>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Pairing</span>
             </div>
 
-            <div class="connect-body">
-                <div class="app-mark">LB</div>
-                <p class="eyebrow">Mobile Bridge</p>
-                <h1>Link your workstation</h1>
-                <p class="lead">Scan the QR shown on your desktop. After pairing, browse any folder and upload files straight into it — no cloud, no cables.</p>
-
-                <div class="scanner-shell">
-                    <video id="scanner-video" playsinline></video>
-                    <div class="scanner-overlay"></div>
-                    <div class="scanner-line"></div>
-                    <div class="scanner-corners" aria-hidden="true">
-                        <span></span><span></span><span></span><span></span>
-                    </div>
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-emerald-500 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <i data-lucide="qr-code" class="text-white w-8 h-8"></i>
                 </div>
-
-                <div class="setup-pills">
-                    <div id="pill-network" class="setup-pill">Network status</div>
-                    <div id="pill-camera"  class="setup-pill">Camera check</div>
-                </div>
-
-                <button id="btn-scan-start" class="primary-btn">Start Camera Scan</button>
+                <h1 class="text-2xl font-black tracking-tight text-white mb-2">Link workstation</h1>
+                <p class="text-slate-400 text-sm px-4">Scan the QR code on your desktop app to pair and start transferring files instantly.</p>
             </div>
+
+            <div class="relative w-full aspect-square max-w-[280px] mx-auto rounded-3xl overflow-hidden bg-black border border-slate-700 mb-8">
+                <video id="scanner-video" class="w-full h-full object-cover opacity-60" playsinline></video>
+                <div class="absolute inset-0 scanner-line"></div>
+                <div class="absolute inset-0 border-[40px] border-black/40"></div>
+                <!-- Corners -->
+                <div class="absolute top-8 left-8 w-8 h-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-lg"></div>
+                <div class="absolute top-8 right-8 w-8 h-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-lg"></div>
+                <div class="absolute bottom-8 left-8 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-lg"></div>
+                <div class="absolute bottom-8 right-8 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-lg"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div id="pill-network" class="p-3 rounded-2xl bg-slate-800/50 border border-slate-700 text-xs font-semibold text-center text-slate-400">Network check</div>
+                <div id="pill-camera" class="p-3 rounded-2xl bg-slate-800/50 border border-slate-700 text-xs font-semibold text-center text-slate-400">Camera ready</div>
+            </div>
+
+            <button id="btn-scan-start" class="w-full py-4 rounded-2xl bg-emerald-500 text-white font-bold text-lg shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-transform">
+                Start Camera Scan
+            </button>
         </div>
     </section>
 
-    <!-- ═══ BROWSER SCREEN (MAIN APP SHELL) ════════════════════════════════ -->
-    <section id="browser-screen" class="screen">
-
-        <!-- Top bar -->
-        <header class="topbar glass-panel">
-            <button id="btn-back-dir" class="round-btn" aria-label="Go to parent folder">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 18l-6-6 6-6"/>
-                </svg>
+    <!-- ═══ TOP BAR ════════════════════════════════════════════ -->
+    <header class="flex-shrink-0 pt-[var(--safe-top)] px-4 h-20 flex items-center justify-between z-10">
+        <div class="flex items-center gap-3">
+            <button id="btn-back-dir" class="w-10 h-10 rounded-full glass flex items-center justify-center disabled:opacity-30">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
             </button>
-
-            <div class="topbar-copy">
-                <p class="eyebrow">Remote Workspace</p>
-                <h2 id="current-dir-label">Workstation</h2>
-                <span id="session-label" class="session-label">● Connected locally</span>
-            </div>
-
-            <button id="btn-upload-pro" class="round-btn round-btn-accent" aria-label="Upload files">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="16 16 12 12 8 16"/>
-                    <line x1="12" y1="12" x2="12" y2="21"/>
-                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-                </svg>
-            </button>
-        </header>
-
-        <!-- Toolbar: path + search -->
-        <section class="toolbar glass-panel">
-            <div id="current-path-mobile" class="path-chip">/</div>
-            <label class="search-field" for="mobile-search">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.5">
-                    <circle cx="11" cy="11" r="7"/>
-                    <path d="M20 20l-3.5-3.5"/>
-                </svg>
-                <input id="mobile-search" type="text" placeholder="Filter this folder…" autocomplete="off">
-            </label>
-        </section>
-
-        <!-- Home Dashboard pane -->
-        <section id="home-pane" class="pane">
-            <div class="pane-head">
-                <div>
-                    <p class="eyebrow">Dashboard</p>
-                    <h3>My Phone</h3>
+            <div>
+                <h2 id="current-dir-label" class="text-lg font-black tracking-tight leading-tight">Home</h2>
+                <div class="flex items-center gap-1.5">
+                    <span id="session-label" class="text-[10px] font-bold uppercase tracking-wider text-slate-500">○ Disconnected</span>
                 </div>
             </div>
+        </div>
+        <button id="btn-upload-pro" class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-90 transition-transform">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+        </button>
+    </header>
 
-            <!-- Big connection card -->
-            <div id="dashboard-connect" class="glass-panel" style="padding:20px; border-radius:var(--r-lg); margin-bottom: 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+    <!-- ═══ MAIN CONTENT ════════════════════════════════════════ -->
+    <main class="flex-1 overflow-hidden relative">
+        
+        <!-- Dashboard Pane -->
+        <section id="home-pane" class="pane absolute inset-0 overflow-y-auto px-4 pb-32 pt-2">
+            <div id="dashboard-connect" class="glass rounded-3xl p-5 mb-8 flex items-center justify-between gap-4">
                 <div>
-                    <h4 style="font-size:1.0rem; font-weight:800; margin-bottom:4px;">Not Connected</h4>
-                    <p style="font-size:0.8rem; color:var(--text-sec); line-height:1.4;">Pair with a PC to start sending files locally.</p>
+                    <h4 class="font-bold text-white">Not Connected</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">Pair with a PC to start sending files locally.</p>
                 </div>
-                <button id="btn-open-scanner" class="round-btn round-btn-accent" style="flex-shrink:0; width:48px; height:48px;">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
-                    </svg>
+                <button id="btn-open-scanner" class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-90 transition-transform">
+                    <i data-lucide="maximize" class="w-6 h-6"></i>
                 </button>
             </div>
 
-            <h4 style="font-size:0.85rem; color:var(--text-sec); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:12px; font-weight:700;">Send to PC</h4>
-
-            <div class="category-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                <!-- Photos -->
-                <button class="category-card" data-pick="image/*" style="text-align:left; padding:16px; border-radius:var(--r-lg); background:var(--surface); border:1px solid var(--border); transition:all 0.15s ease;">
-                    <div style="width:44px; height:44px; border-radius:12px; background:rgba(10,132,255,0.15); border:1px solid rgba(10,132,255,0.25); display:grid; place-items:center; margin-bottom:12px; color:#a8d4ff;">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Quick Send</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <button data-pick="image/*" class="category-card glass p-5 rounded-3xl text-left active:scale-95 transition-transform group">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                        <i data-lucide="image" class="w-5 h-5"></i>
                     </div>
-                    <strong style="display:block; font-size:0.9rem; font-weight:700; margin-bottom:2px;">Photos</strong>
-                    <span style="font-size:0.75rem; color:var(--text-sec);">Images from gallery</span>
+                    <span class="block font-bold text-sm mb-1 text-white">Photos</span>
+                    <span class="text-[10px] text-slate-500">Gallery images</span>
                 </button>
-
-                <!-- Videos -->
-                <button class="category-card" data-pick="video/*" style="text-align:left; padding:16px; border-radius:var(--r-lg); background:var(--surface); border:1px solid var(--border); transition:all 0.15s ease;">
-                    <div style="width:44px; height:44px; border-radius:12px; background:rgba(180,50,255,0.15); border:1px solid rgba(180,50,255,0.25); display:grid; place-items:center; margin-bottom:12px; color:#e0b0ff;">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                <button data-pick="video/*" class="category-card glass p-5 rounded-3xl text-left active:scale-95 transition-transform group">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                        <i data-lucide="video" class="w-5 h-5"></i>
                     </div>
-                    <strong style="display:block; font-size:0.9rem; font-weight:700; margin-bottom:2px;">Videos</strong>
-                    <span style="font-size:0.75rem; color:var(--text-sec);">Movies & clips</span>
+                    <span class="block font-bold text-sm mb-1 text-white">Videos</span>
+                    <span class="text-[10px] text-slate-500">Movies & clips</span>
                 </button>
-
-                <!-- Audio -->
-                <button class="category-card" data-pick="audio/*" style="text-align:left; padding:16px; border-radius:var(--r-lg); background:var(--surface); border:1px solid var(--border); transition:all 0.15s ease;">
-                    <div style="width:44px; height:44px; border-radius:12px; background:rgba(255,80,120,0.15); border:1px solid rgba(255,80,120,0.25); display:grid; place-items:center; margin-bottom:12px; color:#ffb0c0;">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <button data-pick="audio/*" class="category-card glass p-5 rounded-3xl text-left active:scale-95 transition-transform group">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center mb-4 group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                        <i data-lucide="music" class="w-5 h-5"></i>
                     </div>
-                    <strong style="display:block; font-size:0.9rem; font-weight:700; margin-bottom:2px;">Audio</strong>
-                    <span style="font-size:0.75rem; color:var(--text-sec);">Music tracks</span>
+                    <span class="block font-bold text-sm mb-1 text-white">Music</span>
+                    <span class="text-[10px] text-slate-500">Audio tracks</span>
                 </button>
-
-                <!-- Documents / Files -->
-                <button class="category-card" data-pick="*" style="text-align:left; padding:16px; border-radius:var(--r-lg); background:var(--surface); border:1px solid var(--border); transition:all 0.15s ease;">
-                    <div style="width:44px; height:44px; border-radius:12px; background:rgba(48,209,88,0.15); border:1px solid rgba(48,209,88,0.25); display:grid; place-items:center; margin-bottom:12px; color:#a7f3bc;">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                <button data-pick="*" class="category-card glass p-5 rounded-3xl text-left active:scale-95 transition-transform group">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
                     </div>
-                    <strong style="display:block; font-size:0.9rem; font-weight:700; margin-bottom:2px;">Documents</strong>
-                    <span style="font-size:0.75rem; color:var(--text-sec);">Any file format</span>
+                    <span class="block font-bold text-sm mb-1 text-white">Documents</span>
+                    <span class="text-[10px] text-slate-500">Any file format</span>
                 </button>
             </div>
         </section>
 
-        <!-- Browse pane -->
-        <section id="browse-pane" class="pane hidden">
-            <div class="pane-head">
-                <div>
-                    <p class="eyebrow">Browse</p>
-                    <h3 id="browse-count">0 items</h3>
+        <!-- Browse Pane -->
+        <section id="browse-pane" class="pane absolute inset-0 overflow-hidden flex flex-col hidden">
+            <div class="px-4 mb-4 flex-shrink-0">
+                <div class="glass h-12 rounded-2xl flex items-center px-4 gap-3 focus-within:ring-2 ring-emerald-500/50 transition-all">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
+                    <input id="mobile-search" type="text" placeholder="Filter files..." class="bg-transparent border-none outline-none text-sm text-white w-full">
+                    <button id="btn-clear-mobile-search" class="hidden">
+                        <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
+                    </button>
                 </div>
-                <button id="btn-clear-mobile-search" class="ghost-btn hidden">✕ Clear</button>
             </div>
-            <div id="file-list" class="file-grid"></div>
-            <div id="browser-empty" class="empty-state hidden">
-                <h3>No files found</h3>
-                <p>Try a different folder or clear the current filter.</p>
+            <div class="px-4 flex items-center justify-between mb-2 flex-shrink-0">
+                <div id="current-path-mobile" class="text-[10px] font-mono text-slate-500 uppercase tracking-widest truncate max-w-[70%]">/</div>
+                <div id="browse-count" class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">0 items</div>
+            </div>
+            <div id="file-list" class="flex-1 overflow-y-auto px-4 pb-32 grid grid-cols-2 gap-3 content-start"></div>
+            <div id="browser-empty" class="absolute inset-0 flex flex-col items-center justify-center text-center px-12 hidden">
+                <i data-lucide="folder-open" class="w-12 h-12 text-slate-700 mb-4"></i>
+                <h3 class="font-bold text-slate-400">No files found</h3>
+                <p class="text-xs text-slate-600 mt-1">This folder is empty or matches no search results.</p>
             </div>
         </section>
 
-        <!-- Transfers pane -->
-        <section id="transfers-pane" class="pane hidden">
-            <div class="pane-head">
-                <div>
-                    <p class="eyebrow">Transfers</p>
-                    <h3 id="transfer-count-mobile">0 uploads</h3>
-                </div>
+        <!-- Transfers Pane -->
+        <section id="transfers-pane" class="pane absolute inset-0 overflow-y-auto px-4 pb-32 pt-2 hidden">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-black text-white">Live Activity</h3>
+                <span id="transfer-count-mobile" class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">0 transfers</span>
             </div>
-            <div id="mobile-transfer-list" class="transfer-list">
-                <div class="transfer-empty">
-                    <strong>No uploads yet</strong>
-                    <p>Tap the upload button to send files to the desktop.</p>
+            <div id="mobile-transfer-list" class="space-y-3"></div>
+        </section>
+
+        <!-- Settings Pane -->
+        <section id="settings-pane" class="pane absolute inset-0 overflow-y-auto px-4 pb-32 pt-2 hidden">
+            <h3 class="text-lg font-black text-white mb-6">Settings</h3>
+            
+            <div class="space-y-4">
+                <div class="glass p-5 rounded-3xl">
+                    <span class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Desktop Host</span>
+                    <strong id="settings-host" class="block text-white mb-1 truncate">Not connected</strong>
+                    <p class="text-[11px] text-slate-400">Direct link IP address for the local workstation.</p>
+                </div>
+
+                <div class="glass p-5 rounded-3xl">
+                    <span class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Current Folder</span>
+                    <strong id="settings-folder" class="block text-white mb-1 truncate">/</strong>
+                    <p class="text-[11px] text-slate-400">Where uploaded files will be stored on the PC.</p>
+                </div>
+
+                <div class="pt-4">
+                    <button id="btn-rescan" class="w-full py-4 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 font-bold active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                        Disconnect & Reset
+                    </button>
                 </div>
             </div>
         </section>
 
-        <!-- Settings pane -->
-        <section id="settings-pane" class="pane hidden">
-            <div class="pane-head">
-                <div>
-                    <p class="eyebrow">Session</p>
-                    <h3>Connection details</h3>
-                </div>
+    </main>
+
+    <!-- ═══ DOCK ════════════════════════════════════════════════ -->
+    <nav class="fixed bottom-0 left-0 right-0 h-[calc(72px+var(--safe-bottom))] glass border-t border-white/5 px-6 flex items-center justify-between z-20">
+        <button class="dock-item flex flex-col items-center gap-1.5 is-active" data-pane="home">
+            <i data-lucide="layout-grid" class="w-6 h-6"></i>
+            <span class="text-[9px] font-black uppercase tracking-widest">Home</span>
+            <div class="indicator w-1 h-1 rounded-full bg-emerald-500 opacity-0 transform scale-0 transition-all"></div>
+        </button>
+        <button class="dock-item flex flex-col items-center gap-1.5" data-pane="browse">
+            <i data-lucide="folder" class="w-6 h-6"></i>
+            <span class="text-[9px] font-black uppercase tracking-widest">Files</span>
+            <div class="indicator w-1 h-1 rounded-full bg-emerald-500 opacity-0 transform scale-0 transition-all"></div>
+        </button>
+        <button class="dock-item flex flex-col items-center gap-1.5" data-pane="transfers">
+            <i data-lucide="activity" class="w-6 h-6"></i>
+            <span class="text-[9px] font-black uppercase tracking-widest">Transfers</span>
+            <div class="indicator w-1 h-1 rounded-full bg-emerald-500 opacity-0 transform scale-0 transition-all"></div>
+        </button>
+        <button class="dock-item flex flex-col items-center gap-1.5" data-pane="settings">
+            <i data-lucide="settings" class="w-6 h-6"></i>
+            <span class="text-[9px] font-black uppercase tracking-widest">Session</span>
+            <div class="indicator w-1 h-1 rounded-full bg-emerald-500 opacity-0 transform scale-0 transition-all"></div>
+        </button>
+    </nav>
+
+    <!-- ═══ UPLOAD TOAST ═════════════════════════════════════════ -->
+    <div id="upload-toast" class="fixed bottom-[88px] left-4 right-4 glass rounded-2xl p-4 flex items-center gap-4 translate-y-20 opacity-0 transition-all z-30 pointer-events-none">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center">
+            <i data-lucide="upload" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <p id="upload-toast-label" class="text-xs font-bold text-white truncate">Uploading...</p>
+            <div class="h-1.5 w-full bg-white/10 rounded-full mt-2 overflow-hidden">
+                <div id="upload-toast-fill" class="h-full bg-emerald-500 transition-all duration-300" style="width:0%"></div>
             </div>
-            <div class="settings-stack">
-                <article class="settings-card glass-panel-inner">
-                    <span class="settings-label">Desktop host</span>
-                    <strong id="settings-host">Not connected</strong>
-                    <p>Your phone talks directly to the LocalBridge server on the local network.</p>
-                </article>
-                <article class="settings-card glass-panel-inner">
-                    <span class="settings-label">Current folder</span>
-                    <strong id="settings-folder">/</strong>
-                    <p>Uploads land in the folder you are currently browsing.</p>
-                </article>
-                <div class="settings-actions">
-                    <button id="btn-rescan" class="primary-btn">Scan New Desktop</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Dock -->
-        <nav class="dock glass-panel" aria-label="Primary">
-            <button class="dock-item is-active" data-pane="home">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                </svg>
-                <span>Home</span>
-                <i class="dock-indicator"></i>
-            </button>
-
-            <button class="dock-item" data-pane="browse">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span>Desktop PC</span>
-                <i class="dock-indicator"></i>
-            </button>
-
-            <button class="dock-item" data-pane="transfers">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="8 17 12 21 16 17"/>
-                    <line x1="12" y1="12" x2="12" y2="21"/>
-                    <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
-                </svg>
-                <span>Transfers</span>
-                <i class="dock-indicator"></i>
-            </button>
-
-            <button class="dock-item" data-pane="settings">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.73.28 1.27.93 1.51 1.62H21a2 2 0 0 1 0 4h-.09c-.29.69-.83 1.34-1.51 1.62z"/>
-                </svg>
-                <span>Session</span>
-                <i class="dock-indicator"></i>
-            </button>
-        </nav>
-    </section>
-
-    <!-- Upload toast -->
-    <div id="upload-toast" class="upload-toast">
-        <span id="upload-toast-label">Uploading…</span>
-        <div class="upload-toast-bar">
-            <div id="upload-toast-fill" class="upload-toast-fill" style="width:0%"></div>
         </div>
     </div>
 
-    <input id="file-input" type="file" multiple>
-    <canvas id="scanner-canvas"></canvas>
+    <input id="file-input" type="file" multiple class="hidden">
+    <canvas id="scanner-canvas" class="hidden"></canvas>
 </div>
 
 <script src="app.js"></script>
+<script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+    
+    // Observer to re-initialize icons when pane changes or content is added
+    const observer = new MutationObserver(() => lucide.createIcons());
+    observer.observe(document.getElementById('app'), { childList: true, subtree: true });
+</script>
 </body>
 </html>

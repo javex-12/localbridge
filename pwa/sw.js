@@ -1,23 +1,22 @@
-const CACHE_NAME = 'localbridge-glass-v1';
+const CACHE_NAME = 'localbridge-emerald-v2';
 const CORE_ASSETS = [
-    '/pwa/',
-    '/pwa/index.html',
-    '/pwa/app.js',
-    '/pwa/gsap.js',
-    '/pwa/jsQR.js',
-    '/pwa/manifest.json',
-    '/pwa/icon.svg'
+    './',
+    './index.html',
+    './app.js',
+    './gsap.js',
+    './jsQR.js',
+    './manifest.json',
+    './icon.svg',
+    'https://cdn.tailwindcss.com',
+    'https://unpkg.com/lucide@latest',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap'
 ];
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('[Service Worker] Pre-caching core PWA assets');
-            // Use Promise.allSettled so a single missing file doesn't crash the whole cache
-            return Promise.allSettled(
-                CORE_ASSETS.map(url => cache.add(url).catch(err => console.warn('Failed to cache:', url, err)))
-            );
+            return cache.addAll(CORE_ASSETS);
         })
     );
 });
@@ -27,10 +26,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
-                    if (key !== CACHE_NAME) {
-                        console.log('[Service Worker] Removing old cache:', key);
-                        return caches.delete(key);
-                    }
+                    if (key !== CACHE_NAME) return caches.delete(key);
                 })
             );
         })
@@ -39,27 +35,35 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Skip cross-origin API calls to the desktop app securely
+    // API calls to the desktop server must always go to the network
     if (event.request.url.includes(':3000/api/')) {
-        return event.respondWith(fetch(event.request));
+        return event.respondWith(fetch(event.request).catch(() => {
+            return new Response(JSON.stringify({ error: 'Desktop disconnected' }), {
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }));
     }
 
+    // For UI assets, use Cache-First with Network Fallback
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            // Stale-while-revalidate strategy for UI assets
-            const fetchPromise = fetch(event.request).then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseToCache);
-                    });
+            if (cachedResponse) return cachedResponse;
+
+            return fetch(event.request).then((networkResponse) => {
+                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                    return networkResponse;
                 }
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseToCache);
+                });
                 return networkResponse;
             }).catch(() => {
-                // Ignore network errors (offline)
+                // If both fail and it's a page navigation, return index.html
+                if (event.request.mode === 'navigate') {
+                    return caches.match('./index.html');
+                }
             });
-
-            return cachedResponse || fetchPromise;
         })
     );
 });
