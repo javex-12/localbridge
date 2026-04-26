@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalBridge — Native Local File Transfer</title>
-    <meta name="description" content="Pair your desktop with any phone instantly. No cloud, no account, no cables. Just your files at LAN speed.">
+    <title>LocalBridge — The Professional File Link</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="pwa/gsap.js"></script>
@@ -12,132 +11,129 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #030712; color: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background-color: #030712; color: #f8fafc; overflow-x: hidden; }
         .glass { background: rgba(17, 24, 39, 0.6); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.06); }
-        .mesh-gradient {
-            background: radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.12) 0%, transparent 40%),
-                        radial-gradient(circle at 90% 90%, rgba(79, 70, 229, 0.12) 0%, transparent 40%);
+        .hero-mesh {
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(79, 70, 229, 0.15) 0%, transparent 40%);
         }
-        .text-gradient {
-            background: linear-gradient(135deg, #fff 30%, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        .text-glow { text-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
         .animate-float { animation: float 6s ease-in-out infinite; }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .btn-blue { background: #2563eb; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-blue:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4); filter: brightness(1.1); }
     </style>
 </head>
-<body class="mesh-gradient min-h-screen text-slate-200">
+<body class="hero-mesh min-h-screen">
 
-    <!-- Nav -->
-    <nav class="sticky top-0 z-50 glass border-b border-white/5 h-20 flex items-center">
-        <div class="container mx-auto px-6 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+    <!-- Premium Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass border-b border-white/5 h-20 flex items-center">
+        <div class="container mx-auto px-8 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30">
                     <i data-lucide="bridge" class="text-white w-6 h-6"></i>
                 </div>
-                <span class="text-xl font-black tracking-tighter uppercase italic">LocalBridge</span>
+                <span class="text-lg font-black tracking-tighter uppercase italic text-white">LocalBridge</span>
             </div>
-            <div class="flex items-center gap-6">
-                <a href="https://github.com/javex-12/localbridge" class="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">Source</a>
-                <a href="pwa/index.html" class="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 hover:scale-105 transition-transform">Launch PWA</a>
+            <div class="flex items-center gap-8">
+                <a href="https://github.com/javex-12/localbridge" class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white transition-colors">Docs</a>
+                <a href="pwa/index.html" class="px-6 py-2.5 rounded-xl bg-white text-slate-900 font-black text-[11px] uppercase tracking-widest hover:scale-105 transition-transform">Get Started</a>
             </div>
         </div>
     </nav>
 
-    <!-- Hero -->
-    <header class="container mx-auto px-6 pt-24 pb-32">
-        <div class="max-w-4xl mx-auto text-center">
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
+    <!-- Hero Section -->
+    <section class="container mx-auto px-8 pt-48 pb-32">
+        <div class="max-w-5xl mx-auto text-center">
+            <div class="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mb-12">
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                Secure · Local · Instant
+                Ultra-Fast Local Handshake
             </div>
-            <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-[0.95] mb-8 text-gradient uppercase italic">
-                Cables are <br>History.
+            <h1 class="text-6xl md:text-9xl font-black tracking-tighter leading-[0.9] mb-10 text-white italic">
+                Bridging Devices <br><span class="text-blue-600 text-glow">Native Force.</span>
             </h1>
-            <p class="text-lg md:text-xl text-slate-400 leading-relaxed mb-12 max-w-2xl mx-auto font-medium">
-                The most professional way to bridge your desktop and mobile. No accounts, no cloud, no friction. Just pure LAN speed.
+            <p class="text-xl text-slate-400 leading-relaxed mb-16 max-w-3xl mx-auto font-medium">
+                The high-performance local bridge for teams and professionals. No accounts, no cloud, no friction. Just your files, moved at pure native speed.
             </p>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="https://github.com/javex-12/localbridge/releases" class="w-full sm:w-auto px-10 py-5 rounded-2xl bg-white text-slate-900 font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:scale-105 transition-transform">
-                    <i data-lucide="download" class="w-4 h-4"></i>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <a href="https://github.com/javex-12/localbridge/releases" class="w-full sm:w-auto px-12 py-5 rounded-2xl btn-blue text-white font-black text-xs uppercase tracking-[0.25em] flex items-center justify-center gap-4">
+                    <i data-lucide="download" class="w-5 h-5"></i>
                     Desktop Build
                 </a>
-                <a href="pwa/index.html" class="w-full sm:w-auto px-10 py-5 rounded-2xl glass text-white font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/5 transition-all">
-                    <i data-lucide="smartphone" class="w-4 h-4"></i>
-                    Mobile PWA
+                <a href="pwa/index.html" class="w-full sm:w-auto px-12 py-5 rounded-2xl glass text-white font-black text-xs uppercase tracking-[0.25em] flex items-center justify-center gap-4 hover:bg-white/5 transition-all">
+                    <i data-lucide="smartphone" class="w-5 h-5"></i>
+                    Launch PWA
                 </a>
             </div>
         </div>
 
-        <!-- Preview Mockup -->
-        <div class="mt-32 relative max-w-5xl mx-auto">
-            <div class="glass p-4 rounded-[48px] border border-white/10 shadow-2xl overflow-hidden animate-float">
-                <div class="bg-[#030712] rounded-[36px] aspect-video w-full shadow-inner relative overflow-hidden flex items-center justify-center">
-                    <div class="absolute inset-0 opacity-20">
-                        <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#3b82f6_0,transparent_50%)]"></div>
-                    </div>
-                    <div class="glass p-12 rounded-[40px] border border-blue-500/20 text-center max-w-md relative z-10">
-                        <div class="w-20 h-20 bg-blue-600 rounded-[28px] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-blue-600/40">
-                            <i data-lucide="zap" class="w-10 h-10 text-white"></i>
+        <!-- High-Fidelity Mockup -->
+        <div class="mt-40 relative">
+            <div class="absolute inset-0 bg-blue-500/20 blur-[150px] rounded-full translate-y-20"></div>
+            <div class="glass p-5 rounded-[56px] border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.5)] overflow-hidden animate-float">
+                <div class="bg-[#0d1117] rounded-[40px] aspect-video w-full flex items-center justify-center relative overflow-hidden">
+                    <!-- Dashboard Mockup Inside -->
+                    <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-24 h-24 bg-blue-600 rounded-[32px] flex items-center justify-center mb-8 shadow-2xl shadow-blue-600/50">
+                            <i data-lucide="zap" class="w-12 h-12 text-white"></i>
                         </div>
-                        <h3 class="text-2xl font-black mb-4 uppercase tracking-tighter italic">Native Force</h3>
-                        <p class="text-sm text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Gigabytes moved in seconds. Zero internet required.</p>
+                        <h2 class="text-3xl font-black text-white italic uppercase tracking-tighter">Native Performance</h2>
+                        <p class="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs mt-4">LAN Handshake Protocol v1.0</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Features -->
-    <section class="container mx-auto px-6 py-32 border-t border-white/5">
-        <div class="grid md:grid-cols-3 gap-16">
-            <div class="space-y-6">
-                <div class="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center shadow-inner">
-                    <i data-lucide="shield-check" class="w-7 h-7"></i>
-                </div>
-                <h3 class="text-xl font-black uppercase tracking-tight italic">Total Privacy</h3>
-                <p class="text-slate-500 text-sm font-bold uppercase tracking-widest leading-loose">Data stays in your room. No relay, no logs, no eyes.</p>
-            </div>
-            <div class="space-y-6">
-                <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shadow-inner">
-                    <i data-lucide="qr-code" class="w-7 h-7"></i>
-                </div>
-                <h3 class="text-xl font-black uppercase tracking-tight italic">Zero Config</h3>
-                <p class="text-slate-500 text-sm font-bold uppercase tracking-widest leading-loose">Scan. Pair. Sync. Under 5 seconds to first transfer.</p>
-            </div>
-            <div class="space-y-6">
-                <div class="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center shadow-inner">
-                    <i data-lucide="smartphone" class="w-7 h-7"></i>
-                </div>
-                <h3 class="text-xl font-black uppercase tracking-tight italic">Web Power</h3>
-                <p class="text-slate-500 text-sm font-bold uppercase tracking-widest leading-loose">PWA performance that rivals native apps on any device.</p>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="container mx-auto px-6 py-20 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-10">
+    <!-- Professional Features -->
+    <section class="container mx-auto px-8 py-40 border-t border-white/5">
+        <div class="grid lg:grid-cols-3 gap-20">
+            <div class="group">
+                <div class="w-16 h-16 rounded-[22px] bg-blue-500/10 text-blue-500 flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform">
+                    <i data-lucide="shield-alert" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-2xl font-black uppercase tracking-tighter italic mb-4">Hardened Privacy</h3>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-[0.15em] leading-relaxed">Your data never leaves your environment. No relay, no logs, no external servers.</p>
+            </div>
+            <div class="group">
+                <div class="w-16 h-16 rounded-[22px] bg-indigo-500/10 text-indigo-500 flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform">
+                    <i data-lucide="cpu" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-2xl font-black uppercase tracking-tighter italic mb-4">Zero Friction</h3>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-[0.15em] leading-relaxed">No setup wizard. Scan the QR code and initiate high-speed transfers in seconds.</p>
+            </div>
+            <div class="group">
+                <div class="w-16 h-16 rounded-[22px] bg-purple-500/10 text-purple-500 flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform">
+                    <i data-lucide="layers" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-2xl font-black uppercase tracking-tighter italic mb-4">PWA Engine</h3>
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-[0.15em] leading-relaxed">Native-grade mobile experience running entirely in your secure browser sandbox.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Professional Footer -->
+    <footer class="container mx-auto px-8 py-24 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-12">
         <div class="flex items-center gap-4">
             <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <i data-lucide="bridge" class="text-white w-4 h-4"></i>
             </div>
-            <span class="text-sm font-black tracking-tighter uppercase italic">LocalBridge</span>
+            <span class="text-sm font-black tracking-tighter uppercase italic text-white">LocalBridge</span>
         </div>
-        <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">© 2026 Native Sync Labs // All Rights Reserved</p>
-        <div class="flex gap-8">
+        <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.4em]">Handcrafted by Native Sync Labs // 2026</p>
+        <div class="flex gap-10">
             <a href="#" class="text-slate-600 hover:text-white transition-colors"><i data-lucide="github" class="w-5 h-5"></i></a>
             <a href="#" class="text-slate-600 hover:text-white transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a>
+            <a href="#" class="text-slate-600 hover:text-white transition-colors"><i data-lucide="linkedin" class="w-5 h-5"></i></a>
         </div>
     </footer>
 
     <script>
         lucide.createIcons();
-        gsap.from('header > div > *', { duration: 1.2, y: 40, opacity: 0, stagger: 0.15, ease: 'expo.out' });
-        gsap.from('.glass', { duration: 1.8, scale: 0.98, opacity: 0, delay: 0.6, ease: 'expo.out' });
+        gsap.from('header > div > *', { duration: 1.5, y: 50, opacity: 0, stagger: 0.2, ease: 'power4.out' });
+        gsap.from('.glass', { duration: 2, scale: 0.95, opacity: 0, delay: 0.8, ease: 'expo.out' });
     </script>
 </body>
 </html>

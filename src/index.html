@@ -3,229 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalBridge — Desktop</title>
+    <title>LocalBridge</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --mac-bg: #0d1117;
+            --mac-glass: rgba(22, 27, 34, 0.7);
+            --mac-border: rgba(255, 255, 255, 0.08);
+            --mac-accent: #2f81f7;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #030712;
-            color: #f8fafc;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--mac-bg);
+            color: #c9d1d9;
+            overflow: hidden;
+            height: 100vh;
             user-select: none;
         }
-        .glass {
-            background: rgba(17, 24, 39, 0.6);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+
+        .mac-glass {
+            background: var(--mac-glass);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid var(--mac-border);
         }
-        .glass-dark {
-            background: rgba(3, 7, 18, 0.8);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-        }
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        .mesh-bg {
-            background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12) 0%, transparent 40%),
-                        radial-gradient(circle at bottom left, rgba(79, 70, 229, 0.12) 0%, transparent 40%);
-        }
-        .file-item {
+
+        .sidebar-item {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .file-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+
+        .sidebar-item.active {
+            background: rgba(47, 129, 247, 0.15);
+            color: #58a6ff;
+            box-shadow: inset 2px 0 0 #58a6ff;
+        }
+
+        .file-card {
+            transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), background 0.2s ease;
+        }
+
+        .file-card:hover {
+            background: rgba(255, 255, 255, 0.04);
             transform: translateY(-2px);
         }
-        .file-item.is-selected {
-            background: rgba(37, 99, 235, 0.1);
-            border-color: rgba(37, 99, 235, 0.3);
+
+        .btn-mac-primary {
+            background: #238636;
+            transition: filter 0.2s;
         }
-        @keyframes cellIn {
-            from { opacity: 0; transform: scale(0.96) translateY(8px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
+
+        .btn-mac-primary:hover {
+            filter: brightness(1.1);
         }
+
+        /* Traffic Lights */
+        .traffic-light { width: 12px; height: 12px; border-radius: 50%; }
+        .t-close { background: #ff5f56; }
+        .t-min { background: #ffbd2e; }
+        .t-max { background: #27c93f; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
     </style>
 </head>
-<body class="mesh-bg h-screen overflow-hidden flex flex-col">
+<body>
 
-    <div id="app" class="flex h-full">
+    <div id="app" class="flex h-screen w-screen overflow-hidden">
         
-        <!-- ── Sidebar ── -->
-        <aside class="w-80 flex-shrink-0 glass border-r border-white/5 flex flex-col">
-            <div class="p-8 pb-4">
-                <div class="flex items-center gap-3 mb-8">
-                    <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-                        <i data-lucide="bridge" class="text-white w-6 h-6"></i>
-                    </div>
-                    <h1 class="text-xl font-black tracking-tighter uppercase">LocalBridge</h1>
+        <!-- ── Navigation Sidebar ── -->
+        <aside class="w-64 flex-shrink-0 border-r border-white/5 flex flex-col z-20 bg-[#0d1117]/80 backdrop-blur-xl">
+            <!-- Header/Branding -->
+            <div class="p-6">
+                <div class="flex gap-2 mb-8">
+                    <div class="traffic-light t-close"></div>
+                    <div class="traffic-light t-min"></div>
+                    <div class="traffic-light t-max"></div>
                 </div>
-
-                <div class="space-y-6">
-                    <section class="p-5 rounded-3xl bg-blue-600/10 border border-blue-600/20">
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Mobile Pair</span>
-                            <span class="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-                        </div>
-                        <button id="btn-show-qr" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
-                            <i data-lucide="qr-code" class="w-4 h-4"></i>
-                            Connect Mobile
-                        </button>
-                        <p class="text-[10px] text-blue-400/60 mt-3 leading-relaxed">Scan pairing QR from your phone app to sync folders.</p>
-                    </section>
-
-                    <nav class="space-y-1">
-                        <button id="btn-home" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                            <i data-lucide="home" class="w-4 h-4 text-blue-500"></i>
-                            Workspace Home
-                        </button>
-                        <button id="btn-refresh" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">
-                            <i data-lucide="refresh-cw" class="w-4 h-4 text-blue-500"></i>
-                            Reload Files
-                        </button>
-                    </nav>
+                
+                <div class="flex items-center gap-3 px-1">
+                    <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
+                        <i data-lucide="bridge" class="text-white w-5 h-5"></i>
+                    </div>
+                    <h1 class="text-sm font-black tracking-tight text-white uppercase italic">LocalBridge</h1>
                 </div>
             </div>
 
-            <div class="mt-auto p-8 pt-4">
-                <section class="glass-dark rounded-3xl p-5 border border-white/5">
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Session</span>
-                        <span id="connection-status" class="px-2 py-0.5 rounded-full bg-slate-800 text-[9px] font-black uppercase text-slate-400">Waiting</span>
+            <!-- Nav Links -->
+            <nav class="flex-1 px-3 space-y-1">
+                <button id="btn-home" class="sidebar-item active w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[13px] font-semibold">
+                    <i data-lucide="home" class="w-4 h-4"></i>
+                    Library
+                </button>
+                <button id="btn-refresh" class="sidebar-item w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-[13px] font-semibold text-slate-400 hover:text-white hover:bg-white/5">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Sync Files
+                </button>
+                
+                <div class="pt-6 pb-2 px-4">
+                    <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest">Connect</span>
+                </div>
+                <button id="btn-show-qr" class="w-full group flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/5 hover:border-blue-500/30 transition-all">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="qr-code" class="w-4 h-4 text-blue-500"></i>
+                        <span class="text-[12px] font-bold text-slate-300">Pair Device</span>
                     </div>
-                    <dl class="space-y-3">
-                        <div class="flex justify-between">
-                            <dt class="text-[10px] text-slate-500 font-bold uppercase">Network</dt>
-                            <dd id="network-badge" class="text-[10px] text-slate-300 font-mono">Checking...</dd>
+                    <i data-lucide="chevron-right" class="w-3 h-3 text-slate-600 group-hover:text-blue-500 transition-colors"></i>
+                </button>
+            </nav>
+
+            <!-- Network Status -->
+            <div class="p-6 mt-auto">
+                <div class="rounded-2xl bg-black/20 p-4 border border-white/5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span id="connection-status" class="text-[9px] font-black text-emerald-500 uppercase">Live</span>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-[10px] text-slate-500 font-bold uppercase">IP Address</dt>
-                            <dd id="network-address" class="text-[10px] text-slate-300 font-mono">--</dd>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-[10px]">
+                            <span class="text-slate-600 font-bold">IP</span>
+                            <span id="network-address" class="text-slate-400 font-mono">--</span>
                         </div>
-                    </dl>
-                </section>
+                        <div id="network-badge" class="text-[10px] text-slate-600 truncate italic">Scanning network...</div>
+                    </div>
+                </div>
             </div>
         </aside>
 
-        <!-- ── Workspace ── -->
-        <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- ── Main Workspace ── -->
+        <main class="flex-1 flex flex-col bg-[#0d1117] relative">
             
+            <!-- Dynamic Background -->
+            <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none"></div>
+
             <!-- Toolbar -->
-            <header class="h-24 flex-shrink-0 px-8 flex items-center justify-between glass border-b border-white/5 z-10">
-                <div class="flex items-center gap-6 flex-1">
-                    <button id="btn-back" class="w-10 h-10 rounded-xl glass flex items-center justify-center disabled:opacity-30">
+            <header class="h-16 flex-shrink-0 px-8 flex items-center justify-between border-b border-white/5 z-10">
+                <div class="flex items-center gap-4">
+                    <button id="btn-back" class="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-slate-400 transition-colors disabled:opacity-20">
                         <i data-lucide="chevron-left" class="w-5 h-5"></i>
                     </button>
-                    <div class="flex flex-col">
-                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Location</span>
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-500"></i>
-                            <span id="current-path" class="text-xs font-mono text-blue-400 truncate max-w-md">/</span>
-                        </div>
+                    <div class="flex items-center gap-2 text-xs font-medium">
+                        <span class="text-slate-500">Workspace</span>
+                        <span class="text-slate-700">/</span>
+                        <span id="current-path" class="text-blue-500 font-mono tracking-tight truncate max-w-[300px]">/root</span>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4">
-                    <div class="glass h-11 px-4 rounded-xl flex items-center gap-3 w-64 focus-within:w-80 focus-within:ring-2 ring-blue-500/50 transition-all">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-500"></i>
-                        <input type="text" id="search-input" placeholder="Search workspace..." class="bg-transparent border-none outline-none text-xs text-white w-full">
+                <div class="flex items-center gap-6">
+                    <div class="relative group">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500"></i>
+                        <input type="text" id="search-input" placeholder="Quick find..." class="bg-white/5 border border-white/5 rounded-lg pl-9 pr-4 py-2 text-[12px] w-48 focus:w-64 focus:ring-1 ring-blue-500/50 outline-none transition-all placeholder:text-slate-600">
                     </div>
-
-                    <div class="flex bg-white/5 p-1 rounded-xl">
-                        <button id="btn-grid" class="w-9 h-9 rounded-lg flex items-center justify-center transition-all bg-blue-600 text-white" title="Grid view">
-                            <i data-lucide="layout-grid" class="w-4 h-4"></i>
-                        </button>
-                        <button id="btn-list" class="w-9 h-9 rounded-lg flex items-center justify-center transition-all text-slate-500 hover:text-white" title="List view">
-                            <i data-lucide="list" class="w-4 h-4"></i>
-                        </button>
+                    <div class="flex items-center gap-1 bg-black/20 p-1 rounded-lg border border-white/5">
+                        <button id="btn-grid" class="p-1.5 rounded-md bg-blue-600 text-white shadow-lg"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i></button>
+                        <button id="btn-list" class="p-1.5 rounded-md text-slate-500 hover:text-white transition-colors"><i data-lucide="list" class="w-3.5 h-3.5"></i></button>
                     </div>
                 </div>
             </header>
 
             <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto px-8 py-8 space-y-12">
+            <div class="flex-1 overflow-y-auto px-8 py-8 space-y-10">
                 
-                <!-- Stats / Overview -->
-                <section class="grid grid-cols-3 gap-6">
-                    <article class="glass p-6 rounded-[32px] border border-white/5 flex flex-col gap-4">
-                        <div class="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
-                            <i data-lucide="wifi" class="w-5 h-5"></i>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Connection</span>
-                            <strong id="hero-network" class="text-lg font-black tracking-tight block text-white">Preparing link</strong>
-                            <p id="hero-hint" class="text-xs text-slate-500 mt-1 leading-relaxed">Generating pairing session...</p>
-                        </div>
-                    </article>
-
-                    <article class="glass p-6 rounded-[32px] border border-white/5 flex flex-col gap-4">
-                        <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                            <i data-lucide="folder-open" class="w-5 h-5"></i>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Folder Stats</span>
-                            <strong id="file-count" class="text-lg font-black tracking-tight block text-white">0 items</strong>
-                            <p id="file-summary" class="text-xs text-slate-500 mt-1 leading-relaxed">Files available to connected phones.</p>
-                        </div>
-                    </article>
-
-                    <article class="glass p-6 rounded-[32px] border border-white/5 flex flex-col gap-4">
-                        <div class="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                            <i data-lucide="activity" class="w-5 h-5"></i>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Transfer Activity</span>
-                            <strong id="transfer-count" class="text-lg font-black tracking-tight block text-white">0 transfers</strong>
-                            <p id="transfer-summary" class="text-xs text-slate-500 mt-1 leading-relaxed">Incoming uploads appear here live.</p>
-                        </div>
-                    </article>
-                </section>
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="p-5 rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent">
+                        <span id="hero-network" class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Tunnel</span>
+                        <div id="hero-hint" class="text-xs text-slate-400 font-bold italic truncate">Pairing Engine Ready</div>
+                    </div>
+                    <div class="p-5 rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent">
+                        <span id="file-count" class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">0 Items</span>
+                        <div id="file-summary" class="text-xs text-slate-400 font-bold italic truncate">In Current View</div>
+                    </div>
+                    <div class="p-5 rounded-2xl border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent text-blue-500">
+                        <span id="transfer-count" class="block text-[10px] font-black text-blue-500/50 uppercase tracking-widest mb-1">Traffic</span>
+                        <div id="transfer-summary" class="text-xs font-black italic truncate">Session Idle</div>
+                    </div>
+                </div>
 
                 <!-- File Browser -->
                 <section>
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 id="current-dir-label" class="text-xl font-black tracking-tight text-white">Home Workspace</h2>
-                        <button id="btn-clear-search" class="text-xs font-bold text-slate-500 hover:text-blue-500 hidden flex items-center gap-1">
-                            <i data-lucide="x" class="w-3 h-3"></i> Clear Search
-                        </button>
+                    <div id="file-browser" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        <!-- Items injected here -->
                     </div>
 
-                    <div id="file-browser" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"></div>
-
                     <div id="empty-state" class="flex flex-col items-center justify-center py-20 text-center hidden">
-                        <div class="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center mb-6">
-                            <i data-lucide="search-x" class="w-8 h-8 text-slate-600"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-slate-400">Nothing found here</h3>
-                        <p class="text-sm text-slate-600 mt-1">Try a different search query or folder.</p>
+                        <i data-lucide="folder-search" class="w-12 h-12 text-slate-800 mb-4"></i>
+                        <h3 class="text-sm font-black text-slate-500 uppercase tracking-widest">No matching records</h3>
                     </div>
                 </section>
 
-                <!-- Transfer Activity -->
-                <section id="transfer-zone" class="pb-12">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-black tracking-tight text-white">Live Transfers</h2>
-                    </div>
-                    <div id="transfer-list" class="space-y-3">
-                        <div class="glass p-8 rounded-[32px] border border-white/5 border-dashed flex flex-col items-center justify-center text-center opacity-40">
-                            <strong class="text-sm font-bold text-slate-400">Idle Session</strong>
-                            <p class="text-xs text-slate-600 mt-1">Ready to receive files from mobile.</p>
+                <!-- Activity Panel -->
+                <section id="transfer-zone" class="pb-20">
+                    <h2 class="text-[11px] font-black text-slate-600 uppercase tracking-[0.25em] mb-6">Active Handshakes</h2>
+                    <div id="transfer-list" class="space-y-2">
+                        <!-- Transfers here -->
+                        <div class="py-12 border border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center opacity-30">
+                            <i data-lucide="satellite" class="w-8 h-8 mb-4"></i>
+                            <span class="text-[10px] font-black uppercase tracking-widest">Awaiting Remote Signal</span>
                         </div>
                     </div>
                 </section>
@@ -233,23 +218,23 @@
         </main>
     </div>
 
-    <!-- QR Modal -->
+    <!-- ── QR Modal (Mac Popover) ── -->
     <div id="qr-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-md modal-backdrop"></div>
-        <div class="relative w-full max-w-md glass rounded-[40px] p-10 overflow-hidden">
-            <button id="btn-close-qr" class="absolute top-6 right-6 w-10 h-10 rounded-full glass flex items-center justify-center hover:bg-white/10 transition-colors">
-                <i data-lucide="x" class="w-5 h-5"></i>
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm modal-backdrop"></div>
+        <div class="relative w-full max-w-sm mac-glass rounded-3xl p-8 shadow-2xl animate-in">
+            <button id="btn-close-qr" class="absolute top-6 right-6 w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
             </button>
-            <div class="text-center mb-10">
-                <h2 class="text-2xl font-black tracking-tight mb-2">Connect Device</h2>
-                <p class="text-slate-400 text-sm">Scan this code with the LocalBridge mobile app.</p>
+            <div class="text-center mb-8">
+                <h2 class="text-lg font-black tracking-tight text-white mb-1">BRIDGE LINK</h2>
+                <p class="text-slate-500 text-[11px] font-bold uppercase tracking-widest">Scan with LocalBridge Mobile</p>
             </div>
-            <div class="glass rounded-3xl p-6 mb-8 flex items-center justify-center">
-                <div id="qr-code" class="w-full bg-white p-2 rounded-xl overflow-hidden"></div>
+            <div class="bg-white p-3 rounded-2xl mb-8 shadow-inner flex items-center justify-center overflow-hidden">
+                <div id="qr-code" class="w-full"></div>
             </div>
-            <div class="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
-                <i data-lucide="shield-check" class="w-5 h-5 text-blue-500"></i>
-                <p class="text-[11px] text-blue-400 font-medium leading-relaxed">Encrypted local transfer. Files never leave your local WiFi network.</p>
+            <div class="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                <i data-lucide="info" class="w-4 h-4 text-blue-500 flex-shrink-0"></i>
+                <p class="text-[10px] text-blue-400 font-bold leading-relaxed">Pairing is only required once. Your device will be remembered.</p>
             </div>
         </div>
     </div>
@@ -257,8 +242,8 @@
     <script src="app.js" type="module"></script>
     <script>
         lucide.createIcons();
-        const observer = new MutationObserver(() => lucide.createIcons());
-        observer.observe(document.getElementById('app'), { childList: true, subtree: true });
+        const obs = new MutationObserver(() => lucide.createIcons());
+        obs.observe(document.getElementById('app'), { childList: true, subtree: true });
     </script>
 </body>
 </html>
