@@ -51,33 +51,36 @@ const dom = {
 
 /* ── Init ─────────────────────────────────────────────────── */
 async function init() {
+    console.log("LocalBridge: Initializing Core...");
+    
+    // Register SW for offline
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
     setupEventListeners();
     
-    // Auto-reconnect if we have saved credentials
+    // Auto-reconnect
     if (state.laptopIp && state.token) {
-        updateConnectionUI(true);
-        await loadRemoteFiles(state.currentPath);
+        console.log("LocalBridge: Attempting auto-reconnect to", state.laptopIp);
+        const success = await loadRemoteFiles(state.currentPath);
+        updateConnectionUI(success);
+        if (success) setPane('browse');
     } else {
         setPane('home');
+        updateConnectionUI(false);
     }
 }
 
 function setupEventListeners() {
-    // Navigation
     dom.dockItems.forEach(item => {
         item.addEventListener('click', () => setPane(item.dataset.pane));
     });
 
-    // Scanner
     if (dom.btnOpenScanner) dom.btnOpenScanner.addEventListener('click', showScannerOverlay);
     if (dom.btnScanStart) dom.btnScanStart.addEventListener('click', startScan);
     if (dom.btnCloseScanner) dom.btnCloseScanner.addEventListener('click', hideScannerOverlay);
 
-    // Browsing
     if (dom.btnBackDir) {
         dom.btnBackDir.addEventListener('click', () => {
             if (!isRootPath(state.currentPath)) {
@@ -93,14 +96,12 @@ function setupEventListeners() {
         });
     }
 
-    // Uploads
     if (dom.btnUpload) dom.btnUpload.addEventListener('click', () => dom.fileInput.click());
     if (dom.fileInput) dom.fileInput.addEventListener('change', () => uploadFiles([...dom.fileInput.files]));
 
-    const categoryCards = document.querySelectorAll('.category-card');
-    categoryCards.forEach(card => {
+    document.querySelectorAll('.category-card').forEach(card => {
         card.addEventListener('click', () => {
-            if (!state.token || !state.laptopIp) {
+            if (!state.isConnected) {
                 showScannerOverlay();
                 return;
             }
@@ -110,45 +111,60 @@ function setupEventListeners() {
         });
     });
 
-    // Settings
     if (dom.btnRescan) dom.btnRescan.addEventListener('click', resetSession);
 }
 
 function updateConnectionUI(connected) {
     state.isConnected = connected;
     if (connected) {
-        dom.dashboardConnect.innerHTML = `
-            <div>
-                <h4 class="font-extrabold text-white text-sm uppercase tracking-wider mb-1">Station Linked</h4>
-                <p class="text-[11px] text-blue-400 font-bold tracking-tight italic">${state.laptopIp}</p>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-500 border border-blue-500/20 flex items-center justify-center">
-                <i data-lucide="check" class="w-6 h-6"></i>
-            </div>
-        `;
-        dom.settingsHost.textContent = state.laptopIp;
-        dom.sessionLabel.textContent = '● Connected';
-        dom.sessionLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-blue-500 italic';
+        if (dom.dashboardConnect) {
+            dom.dashboardConnect.innerHTML = `
+                <div class="flex-1">
+                    <h4 class="font-extrabold text-white text-sm uppercase tracking-wider mb-1">Bridge Active</h4>
+                    <p class="text-[11px] text-blue-400 font-bold italic truncate">${state.laptopIp}</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-500 border border-blue-500/20 flex items-center justify-center">
+                    <i data-lucide="zap" class="w-6 h-6"></i>
+                </div>
+            `;
+        }
+        if (dom.settingsHost) dom.settingsHost.textContent = state.laptopIp;
+        if (dom.sessionLabel) {
+            dom.sessionLabel.textContent = '● Online';
+            dom.sessionLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-blue-500 italic';
+        }
         if (dom.statusDot) dom.statusDot.className = 'status-dot active';
     } else {
-        dom.dashboardConnect.innerHTML = `
-            <div>
-                <h4 class="font-extrabold text-white text-sm uppercase tracking-wider mb-1">Bridge Link Idle</h4>
-                <p class="text-[11px] text-slate-400 leading-relaxed font-medium">Scan to initiate native handshake.</p>
-            </div>
-            <button id="btn-open-scanner-new" class="w-12 h-12 rounded-2xl bg-slate-800 text-blue-500 flex items-center justify-center border border-white/5 active:scale-90 transition-transform">
-                <i data-lucide="qr-code" class="w-6 h-6"></i>
-            </button>
-        `;
-        const btnNew = document.getElementById('btn-open-scanner-new');
-        if (btnNew) btnNew.addEventListener('click', showScannerOverlay);
-        
-        dom.settingsHost.textContent = '--';
-        dom.sessionLabel.textContent = '○ Off-Air';
-        dom.sessionLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-500 italic';
+        if (dom.dashboardConnect) {
+            dom.dashboardConnect.innerHTML = `
+                <div class="flex-1">
+                    <h4 class="font-extrabold text-white text-sm uppercase tracking-wider mb-1">Disconnected</h4>
+                    <p class="text-[11px] text-slate-400 font-medium">Link with workstation to start.</p>
+                </div>
+                <button id="btn-manual-link" class="px-4 py-2 rounded-xl bg-slate-800 text-blue-500 text-[10px] font-black uppercase tracking-widest border border-white/5">Manual</button>
+                <button id="btn-re-scan" class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform ml-2">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </button>
+            `;
+            document.getElementById('btn-re-scan').addEventListener('click', showScannerOverlay);
+            document.getElementById('btn-manual-link').addEventListener('click', promptManualLink);
+        }
+        if (dom.settingsHost) dom.settingsHost.textContent = '--';
+        if (dom.sessionLabel) {
+            dom.sessionLabel.textContent = '○ Offline';
+            dom.sessionLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-500 italic';
+        }
         if (dom.statusDot) dom.statusDot.className = 'status-dot';
     }
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
+}
+
+function promptManualLink() {
+    const ip = prompt("Enter Workstation IP (e.g. 192.168.1.5):", state.laptopIp);
+    const token = prompt("Enter Security Token:", state.token);
+    if (ip && token) {
+        handleHandshake({ ip, token });
+    }
 }
 
 /* ── Pane switching ───────────────────────────────────────── */
@@ -163,84 +179,77 @@ function setPane(paneName) {
 }
 
 function showScannerOverlay() {
+    if (!dom.connectScreen) return;
     dom.connectScreen.classList.remove('hidden');
     if (window.gsap) {
-        gsap.fromTo(dom.connectScreen, 
-            { opacity: 0, y: 50 },
-            { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }
-        );
+        gsap.fromTo(dom.connectScreen, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.4 });
     }
 }
 
 function hideScannerOverlay() {
-    if (window.gsap) {
-        gsap.to(dom.connectScreen, {
-            opacity: 0,
-            y: 50,
-            duration: 0.3,
-            ease: 'power3.in',
-            onComplete: () => {
-                dom.connectScreen.classList.add('hidden');
-                stopScanner();
-            }
-        });
-    } else {
-        dom.connectScreen.classList.add('hidden');
-        stopScanner();
-    }
+    if (!dom.connectScreen) return;
+    dom.connectScreen.classList.add('hidden');
+    stopScanner();
 }
 
 /* ── QR Scanner ───────────────────────────────────────────── */
 async function startScan() {
     try {
+        console.log("LocalBridge: Requesting Camera...");
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: { facingMode: 'environment' }
         });
 
-        dom.scannerVideo.srcObject = stream;
-        await dom.scannerVideo.play();
+        if (dom.scannerVideo) {
+            dom.scannerVideo.srcObject = stream;
+            await dom.scannerVideo.play();
+        }
 
-        dom.btnScanStart.textContent = 'SYSTEM LISTENING…';
-        dom.btnScanStart.disabled = true;
+        if (dom.btnScanStart) {
+            dom.btnScanStart.textContent = 'SYSTEM ACTIVE…';
+            dom.btnScanStart.disabled = true;
+        }
 
         clearInterval(state.scanTimer);
         state.scanTimer = setInterval(readQrFrame, 200);
     } catch (err) {
-        alert(`Camera error: ${err.message}`);
-        dom.btnScanStart.disabled = false;
+        console.error("Camera Error:", err);
+        alert(`Camera restricted: ${err.name}. Try Manual Link.`);
+        if (dom.btnScanStart) dom.btnScanStart.disabled = false;
     }
 }
 
 function readQrFrame() {
-    if (dom.scannerVideo.readyState !== dom.scannerVideo.HAVE_ENOUGH_DATA) return;
+    if (!dom.scannerVideo || dom.scannerVideo.readyState !== dom.scannerVideo.HAVE_ENOUGH_DATA) return;
 
     dom.scannerCanvas.width  = dom.scannerVideo.videoWidth;
     dom.scannerCanvas.height = dom.scannerVideo.videoHeight;
     const ctx = dom.scannerCanvas.getContext('2d');
     ctx.drawImage(dom.scannerVideo, 0, 0);
     const img  = ctx.getImageData(0, 0, dom.scannerCanvas.width, dom.scannerCanvas.height);
-    const code = jsQR(img.data, img.width, img.height);
+    const code = window.jsQR ? jsQR(img.data, img.width, img.height) : null;
 
     if (code) {
         clearInterval(state.scanTimer);
-        if (navigator.vibrate) navigator.vibrate([60, 30, 60]);
         try {
             handleHandshake(JSON.parse(code.data));
         } catch (e) {
-            alert('Invalid QR code');
-            startScan(); // Resume scanning
+            console.error("Invalid QR:", e);
+            startScan(); 
         }
     }
 }
 
 function stopScanner() {
     clearInterval(state.scanTimer);
-    if (dom.scannerVideo.srcObject) {
+    if (dom.scannerVideo && dom.scannerVideo.srcObject) {
         dom.scannerVideo.srcObject.getTracks().forEach((t) => t.stop());
         dom.scannerVideo.srcObject = null;
     }
-    dom.btnScanStart.textContent = 'Initialize Scanner';
-    dom.btnScanStart.disabled = false;
+    if (dom.btnScanStart) {
+        dom.btnScanStart.textContent = 'Initialize Scanner';
+        dom.btnScanStart.disabled = false;
+    }
 }
 
 /* ── Handshake ────────────────────────────────────────────── */
@@ -251,14 +260,21 @@ async function handleHandshake(payload) {
     localStorage.setItem('laptopIp', state.laptopIp);
     localStorage.setItem('connectionToken', state.token);
 
-    updateConnectionUI(true);
-    hideScannerOverlay();
-    setPane('browse');
-    await loadRemoteFiles('/');
+    const success = await loadRemoteFiles('/');
+    updateConnectionUI(success);
+    
+    if (success) {
+        hideScannerOverlay();
+        setPane('browse');
+    } else {
+        alert("Connection failed. Check IP and Token.");
+    }
 }
 
 /* ── File loading ─────────────────────────────────────────── */
 async function loadRemoteFiles(path) {
+    if (!state.laptopIp || !state.token) return false;
+    
     state.currentPath = path;
     localStorage.setItem('lastPath', path);
 
@@ -268,24 +284,23 @@ async function loadRemoteFiles(path) {
     if (dom.btnBackDir) dom.btnBackDir.disabled           = isRootPath(path);
 
     if (dom.fileList) {
-        dom.fileList.innerHTML = [1,2,3,4].map(() =>
-            `<div class="glass-card p-5 rounded-[32px] animate-pulse h-40"></div>`
-        ).join('');
+        dom.fileList.innerHTML = `<div class="col-span-2 py-20 text-center text-slate-600 font-bold uppercase tracking-widest animate-pulse">Establishing Tunnel...</div>`;
     }
-    if (dom.browserEmpty) dom.browserEmpty.classList.add('hidden');
 
     try {
-        const res = await fetch(`http://${state.laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${state.token}`);
+        const url = `http://${state.laptopIp}:3000/api/files?path=${encodeURIComponent(path)}&token=${state.token}`;
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Unauthorized');
         
         const files = await res.json();
         state.currentItems = sortFiles(files);
-        renderFiles(filterCurrentItems());
+        renderFiles(state.currentItems);
+        return true;
     } catch (err) {
-        console.error(err);
-        updateConnectionUI(false);
+        console.error("Fetch Error:", err);
         if (dom.fileList) dom.fileList.innerHTML = '';
         if (dom.browserEmpty) dom.browserEmpty.classList.remove('hidden');
+        return false;
     }
 }
 
@@ -305,6 +320,7 @@ function filterCurrentItems() {
 function renderFiles(files) {
     if (!dom.fileList) return;
     dom.fileList.innerHTML = '';
+    
     const showEmpty = files.length === 0;
     if (dom.browserEmpty) dom.browserEmpty.classList.toggle('hidden', !showEmpty);
     if (dom.browseCount) dom.browseCount.textContent = `${files.length} ITEMS`;
@@ -333,7 +349,7 @@ function renderFiles(files) {
 
         if (file.kind === 'image') hydrateThumbnail(file, card, renderId);
     });
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
 }
 
 function getIconColor(kind) {
@@ -342,15 +358,14 @@ function getIconColor(kind) {
         case 'image': return 'indigo';
         case 'video': return 'rose';
         case 'audio': return 'emerald';
-        case 'archive': return 'orange';
-        case 'document': return 'blue';
         default: return 'slate';
     }
 }
 
 async function hydrateThumbnail(file, card, renderId) {
     try {
-        const res = await fetch(`http://${state.laptopIp}:3000/api/thumbnail?path=${encodeURIComponent(file.path)}&token=${state.token}`);
+        const url = `http://${state.laptopIp}:3000/api/thumbnail?path=${encodeURIComponent(file.path)}&token=${state.token}`;
+        const res = await fetch(url);
         if (!res.ok || renderId !== state.thumbVersion) return;
         const payload = await res.json();
         if (payload.thumbnail) {
@@ -367,14 +382,8 @@ function handleFileTap(file) {
     if (file.kind === 'folder') {
         loadRemoteFiles(file.path);
     } else {
-        recordTransfer({
-            id: `download-${Date.now()}`,
-            name: file.name,
-            status: 'done',
-            transferred: file.size,
-            total: file.size,
-        });
-        window.open(`http://${state.laptopIp}:3000/api/file?path=${encodeURIComponent(file.path)}&token=${state.token}`, '_blank');
+        const url = `http://${state.laptopIp}:3000/api/file?path=${encodeURIComponent(file.path)}&token=${state.token}`;
+        window.open(url, '_blank');
     }
 }
 
@@ -391,8 +400,8 @@ function renderTransfers() {
 
     if (items.length === 0) {
         if (dom.mobileTransferList) {
-            dom.mobileTransferList.innerHTML = `<div class="py-20 flex flex-col items-center justify-center text-center opacity-20"><i data-lucide="satellite" class="w-12 h-12 text-slate-400 mb-6"></i><p class="text-xs font-bold uppercase tracking-widest">No Active Handshakes</p></div>`;
-            lucide.createIcons();
+            dom.mobileTransferList.innerHTML = `<div class="py-20 flex flex-col items-center justify-center text-center opacity-20"><i data-lucide="satellite" class="w-12 h-12 text-slate-400 mb-6"></i><p class="text-xs font-bold uppercase tracking-widest">No Traffic</p></div>`;
+            if (window.lucide) lucide.createIcons();
         }
         return;
     }
@@ -403,7 +412,7 @@ function renderTransfers() {
             const isDone = item.status === 'done';
             return `
                 <article class="glass-card p-5 rounded-[32px] flex items-center gap-5">
-                    <div class="w-12 h-12 rounded-[20px] ${isDone ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-blue-600/10 text-blue-500'} flex items-center justify-center">
+                    <div class="w-12 h-12 rounded-[20px] ${isDone ? 'bg-blue-600 text-white' : 'bg-blue-600/10 text-blue-500'} flex items-center justify-center">
                         <i data-lucide="${isDone ? 'check' : 'arrow-up-circle'}" class="w-6 h-6"></i>
                     </div>
                     <div class="flex-1 min-w-0">
@@ -411,13 +420,13 @@ function renderTransfers() {
                             <div class="text-[11px] font-extrabold text-white truncate mr-4 uppercase tracking-wider italic">${escapeHtml(item.name)}</div>
                             <span class="text-[9px] font-extrabold uppercase tracking-widest ${isDone ? 'text-blue-500' : 'text-blue-400'}">${item.status}</span>
                         </div>
-                        <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                            <div class="h-full ${isDone ? 'bg-blue-600' : 'bg-blue-500 animate-pulse'} transition-all duration-300" style="width:${pct}%"></div>
+                        <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full bg-blue-500 transition-all duration-300" style="width:${pct}%"></div>
                         </div>
                     </div>
                 </article>`;
         }).join('');
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
     }
 }
 
@@ -440,7 +449,8 @@ function uploadSingleFile(file) {
         showToast(file.name, 0);
 
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `http://${state.laptopIp}:3000/api/upload?path=${encodeURIComponent(state.currentPath)}&token=${state.token}`);
+        const url = `http://${state.laptopIp}:3000/api/upload?path=${encodeURIComponent(state.currentPath)}&token=${state.token}`;
+        xhr.open('POST', url);
 
         xhr.upload.onprogress = (e) => {
             const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
@@ -466,7 +476,7 @@ function uploadSingleFile(file) {
 
 function showToast(name, pct) {
     if (!dom.uploadToast) return;
-    dom.uploadToastLabel.textContent = pct === 100 ? `SYNC COMPLETE: ${name}` : `SYNCING PAYLOAD: ${pct}%`;
+    dom.uploadToastLabel.textContent = pct === 100 ? `SYNC COMPLETE` : `SYNCING: ${pct}%`;
     dom.uploadToastFill.style.width = `${pct}%`;
     dom.uploadToast.classList.remove('opacity-0', 'translate-y-20');
     if (pct === 100) setTimeout(hideToast, 3000);
@@ -505,13 +515,13 @@ function formatSize(bytes) {
 }
 
 function escapeHtml(v) { return String(v).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;'); }
-function basename(path) { return path.split(/[\\/]/).filter(Boolean).pop() || ''; }
+function basename(path) { return path.split(/[\/]/).filter(Boolean).pop() || ''; }
 function shorten(path) { return path.length > 20 ? '...' + path.slice(-17) : path; }
 function parentPath(path) { 
-    const p = path.split(/[\\/]/).filter(Boolean);
+    const p = path.split(/[\/]/).filter(Boolean);
     p.pop();
     return p.length === 0 ? '/' : '/' + p.join('/');
 }
 function isRootPath(path) { return path === '/' || !path || path.endsWith(':'); }
 
-init();
+window.addEventListener('load', init);

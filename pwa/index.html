@@ -6,12 +6,12 @@
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>LocalBridge Mobile</title>
+    <title>LocalBridge Console</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="gsap.js"></script>
     <script src="jsQR.js"></script>
+    <script src="gsap.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
@@ -19,7 +19,6 @@
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
             --cobalt-950: #020617;
-            --cobalt-900: #0f172a;
             --blue-600: #2563eb;
         }
 
@@ -37,175 +36,104 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .glass-card:active {
-            transform: scale(0.96);
-            background: rgba(30, 41, 59, 0.6);
         }
 
         .nav-dock {
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             padding-bottom: var(--safe-bottom);
         }
 
-        .pane {
-            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-        }
+        .pane { transition: all 0.3s ease; }
+        .pane.hidden { display: none; opacity: 0; }
 
-        .pane.hidden {
-            display: none;
-            opacity: 0;
-            transform: translateY(20px) scale(0.98);
-        }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #64748b; }
+        .status-dot.active { background: #10b981; box-shadow: 0 0 10px #10b981; }
 
-        .scanner-overlay {
-            background: linear-gradient(0deg, rgba(2, 6, 23, 0.8) 0%, transparent 100%);
-        }
+        .dock-item.is-active { color: var(--blue-600); }
+        .indicator { width: 4px; height: 4px; background: var(--blue-600); border-radius: 50%; position: absolute; bottom: -8px; opacity: 0; }
+        .dock-item.is-active .indicator { opacity: 1; transform: scale(1.5); }
 
         .scanner-line {
             height: 2px;
-            background: linear-gradient(90deg, transparent, var(--blue-600), transparent);
-            box-shadow: 0 0 20px rgba(37, 99, 235, 0.6);
-            animation: scan 2.5s ease-in-out infinite;
-        }
-
-        @keyframes scan {
-            0%, 100% { top: 10%; }
-            50% { top: 90%; }
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #64748b;
-        }
-
-        .status-dot.active {
-            background: #10b981;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-            animation: pulse-green 2s infinite;
-        }
-
-        @keyframes pulse-green {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .dock-item.is-active {
-            color: var(--blue-600);
-        }
-
-        .dock-item.is-active i {
-            transform: translateY(-4px);
-        }
-
-        .indicator {
-            width: 4px;
-            height: 4px;
-            background: var(--blue-600);
-            border-radius: 50%;
+            background: linear-gradient(90deg, transparent, #2563eb, transparent);
+            box-shadow: 0 0 20px #2563eb;
             position: absolute;
-            bottom: -8px;
-            opacity: 0;
-            transition: all 0.3s ease;
+            width: 100%;
+            animation: scan 2.5s infinite;
         }
-
-        .dock-item.is-active .indicator {
-            opacity: 1;
-            transform: scale(1.5);
-        }
+        @keyframes scan { 0%, 100% { top: 10%; } 50% { top: 90%; } }
     </style>
 </head>
 <body class="min-h-screen overflow-hidden">
 
 <div id="app" class="relative h-screen flex flex-col">
     
-    <!-- ═══ TOP STATUS BAR ═══ -->
+    <!-- Header -->
     <header class="pt-[var(--safe-top)] px-6 h-24 flex items-center justify-between z-20">
         <div class="flex items-center gap-4">
-            <button id="btn-back-dir" class="w-10 h-10 rounded-2xl glass-card flex items-center justify-center disabled:opacity-30">
+            <button id="btn-back-dir" class="w-10 h-10 rounded-2xl glass-card flex items-center justify-center disabled:opacity-20">
                 <i data-lucide="chevron-left" class="w-6 h-6 text-blue-500"></i>
             </button>
             <div>
                 <h1 id="current-dir-label" class="text-lg font-extrabold tracking-tighter text-white uppercase italic">Workstation</h1>
                 <div class="flex items-center gap-2 mt-0.5">
                     <div id="status-dot" class="status-dot"></div>
-                    <span id="session-label" class="text-[10px] font-bold uppercase tracking-widest text-slate-500 italic">Off-Air</span>
+                    <span id="session-label" class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Connecting...</span>
                 </div>
             </div>
         </div>
-        <button id="btn-upload-pro" class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 active:scale-90 transition-transform">
+        <button id="btn-upload-pro" class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
             <i data-lucide="plus" class="w-6 h-6"></i>
         </button>
     </header>
 
-    <!-- ═══ MAIN STAGE ═══ -->
+    <!-- Main -->
     <main class="flex-1 relative overflow-hidden">
         
-        <!-- DASHBOARD PANE -->
+        <!-- Home -->
         <section id="home-pane" class="pane absolute inset-0 overflow-y-auto px-6 pb-32 pt-2">
             <div id="dashboard-connect" class="glass-card rounded-[32px] p-6 mb-8 flex items-center justify-between gap-4">
-                <div>
-                    <h4 class="font-extrabold text-white text-sm uppercase tracking-wider mb-1">Bridge Link Idle</h4>
-                    <p class="text-[11px] text-slate-400 leading-relaxed font-medium">Scan to initiate native handshake.</p>
-                </div>
-                <button id="btn-open-scanner" class="w-12 h-12 rounded-2xl bg-slate-800 text-blue-500 flex items-center justify-center border border-white/5 active:scale-90 transition-transform">
-                    <i data-lucide="qr-code" class="w-6 h-6"></i>
-                </button>
+                <!-- Injected via JS -->
             </div>
 
-            <div class="mb-6 flex items-center justify-between px-1">
-                <h3 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-[0.2em]">Quick Channels</h3>
-                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">v2.0 Native</span>
-            </div>
-
+            <h3 class="text-[11px] font-extrabold text-slate-500 uppercase tracking-[0.2em] mb-6 px-1">Quick Transport</h3>
             <div class="grid grid-cols-2 gap-4">
-                <button data-pick="image/*" class="category-card glass-card p-6 rounded-[32px] text-left">
+                <button data-pick="image/*" class="category-card glass-card p-6 rounded-[32px] text-left active:scale-95 transition-transform">
                     <div class="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-500 flex items-center justify-center mb-6 border border-blue-500/10">
                         <i data-lucide="image" class="w-6 h-6"></i>
                     </div>
-                    <span class="block font-extrabold text-xs mb-1 text-white uppercase tracking-wider">Imagery</span>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Photos & Assets</span>
+                    <span class="block font-extrabold text-xs text-white uppercase tracking-wider">Images</span>
                 </button>
-                <button data-pick="video/*" class="category-card glass-card p-6 rounded-[32px] text-left">
+                <button data-pick="video/*" class="category-card glass-card p-6 rounded-[32px] text-left active:scale-95 transition-transform">
                     <div class="w-12 h-12 rounded-2xl bg-indigo-600/10 text-indigo-500 flex items-center justify-center mb-6 border border-indigo-500/10">
                         <i data-lucide="clapperboard" class="w-6 h-6"></i>
                     </div>
-                    <span class="block font-extrabold text-xs mb-1 text-white uppercase tracking-wider">Cinema</span>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Video Clips</span>
+                    <span class="block font-extrabold text-xs text-white uppercase tracking-wider">Video</span>
                 </button>
-                <button data-pick="audio/*" class="category-card glass-card p-6 rounded-[32px] text-left">
+                <button data-pick="audio/*" class="category-card glass-card p-6 rounded-[32px] text-left active:scale-95 transition-transform">
                     <div class="w-12 h-12 rounded-2xl bg-rose-600/10 text-rose-500 flex items-center justify-center mb-6 border border-rose-500/10">
                         <i data-lucide="waveform" class="w-6 h-6"></i>
                     </div>
-                    <span class="block font-extrabold text-xs mb-1 text-white uppercase tracking-wider">Acoustic</span>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Music & Sound</span>
+                    <span class="block font-extrabold text-xs text-white uppercase tracking-wider">Audio</span>
                 </button>
-                <button data-pick="*" class="category-card glass-card p-6 rounded-[32px] text-left">
+                <button data-pick="*" class="category-card glass-card p-6 rounded-[32px] text-left active:scale-95 transition-transform">
                     <div class="w-12 h-12 rounded-2xl bg-emerald-600/10 text-emerald-500 flex items-center justify-center mb-6 border border-emerald-500/10">
                         <i data-lucide="files" class="w-6 h-6"></i>
                     </div>
-                    <span class="block font-extrabold text-xs mb-1 text-white uppercase tracking-wider">Records</span>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Raw Documents</span>
+                    <span class="block font-extrabold text-xs text-white uppercase tracking-wider">Docs</span>
                 </button>
             </div>
         </section>
 
-        <!-- BROWSE PANE -->
+        <!-- Browse -->
         <section id="browse-pane" class="pane absolute inset-0 overflow-hidden flex flex-col hidden">
             <div class="px-6 mb-4">
                 <div class="glass-card h-14 rounded-2xl flex items-center px-5 gap-4">
                     <i data-lucide="search" class="w-5 h-5 text-slate-500"></i>
-                    <input id="mobile-search" type="text" placeholder="Search workspace..." class="bg-transparent border-none outline-none text-sm font-bold text-white w-full placeholder:text-slate-600">
-                    <button id="btn-clear-mobile-search" class="hidden">
-                        <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
-                    </button>
+                    <input id="mobile-search" type="text" placeholder="Search workstation..." class="bg-transparent border-none outline-none text-sm font-bold text-white w-full placeholder:text-slate-600">
                 </div>
             </div>
             <div class="px-6 flex items-center justify-between mb-4">
@@ -213,108 +141,88 @@
                 <div id="browse-count" class="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest">0 ITEMS</div>
             </div>
             <div id="file-list" class="flex-1 overflow-y-auto px-6 pb-32 grid grid-cols-2 gap-4"></div>
-            <div id="browser-empty" class="absolute inset-0 flex flex-col items-center justify-center text-center px-12 hidden pointer-events-none">
+            <div id="browser-empty" class="absolute inset-0 flex flex-col items-center justify-center text-center px-12 hidden">
                 <i data-lucide="folder-search" class="w-12 h-12 text-slate-800 mb-4"></i>
-                <h3 class="text-sm font-extrabold text-slate-600 uppercase tracking-widest">Silent Library</h3>
+                <h3 class="text-sm font-extrabold text-slate-600 uppercase tracking-widest">Empty Workspace</h3>
             </div>
         </section>
 
-        <!-- TRANSFERS PANE -->
+        <!-- Transfers -->
         <section id="transfers-pane" class="pane absolute inset-0 overflow-y-auto px-6 pb-32 pt-2 hidden">
-            <div class="flex items-center justify-between mb-10">
+            <div class="flex items-center justify-between mb-10 px-1">
                 <h3 class="text-2xl font-extrabold text-white italic tracking-tighter uppercase">Traffic</h3>
                 <span id="transfer-count-mobile" class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest bg-blue-500/10 px-4 py-1.5 rounded-full border border-blue-500/20">0 Active</span>
             </div>
-            <div id="mobile-transfer-list" class="space-y-4">
-                <div class="py-20 flex flex-col items-center justify-center text-center opacity-20">
-                    <i data-lucide="satellite" class="w-12 h-12 text-slate-400 mb-6"></i>
-                    <p class="text-xs font-bold uppercase tracking-widest">No Active Handshakes</p>
-                </div>
-            </div>
+            <div id="mobile-transfer-list" class="space-y-4"></div>
         </section>
 
-        <!-- SETTINGS PANE -->
+        <!-- Settings -->
         <section id="settings-pane" class="pane absolute inset-0 overflow-y-auto px-6 pb-32 pt-2 hidden">
-            <h3 class="text-2xl font-extrabold text-white italic tracking-tighter uppercase mb-10">Intel</h3>
+            <h3 class="text-2xl font-extrabold text-white italic tracking-tighter uppercase mb-10 px-1">Intel</h3>
             <div class="space-y-4">
                 <div class="glass-card p-6 rounded-[32px]">
-                    <span class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-[0.2em] mb-4">Node Address</span>
-                    <strong id="settings-host" class="block text-white text-lg font-extrabold tracking-tight italic mb-2">--</strong>
-                    <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div class="h-full bg-blue-500 w-1/3 opacity-50"></div>
-                    </div>
+                    <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 block">Workstation IP</span>
+                    <strong id="settings-host" class="text-white text-lg font-extrabold italic block">--</strong>
                 </div>
                 <div class="glass-card p-6 rounded-[32px]">
-                    <span class="block text-[10px] font-extrabold text-slate-500 uppercase tracking-[0.2em] mb-4">Sync Root</span>
-                    <strong id="settings-folder" class="block text-slate-300 text-xs font-mono break-all italic">/</strong>
+                    <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-4 block">Target Path</span>
+                    <strong id="settings-folder" class="text-slate-300 text-xs font-mono italic block break-all">/</strong>
                 </div>
-                <button id="btn-rescan" class="w-full py-5 rounded-[24px] bg-rose-500/10 text-rose-500 border border-rose-500/20 font-extrabold text-xs uppercase tracking-[0.2em] mt-8 flex items-center justify-center gap-3 active:bg-rose-500/20 transition-all">
-                    <i data-lucide="power" class="w-4 h-4"></i>
-                    Terminate Session
-                </button>
+                <button id="btn-rescan" class="w-full py-5 rounded-[24px] bg-rose-500/10 text-rose-500 border border-rose-500/20 font-extrabold text-xs uppercase tracking-widest mt-8">Terminate Session</button>
             </div>
         </section>
     </main>
 
-    <!-- ═══ NAVIGATION DOCK ═══ -->
+    <!-- Dock -->
     <nav class="fixed bottom-0 left-0 right-0 h-24 nav-dock px-10 flex items-center justify-between z-30">
         <button class="dock-item flex flex-col items-center gap-1.5 relative transition-all" data-pane="home">
-            <i data-lucide="layout-grid" class="w-6 h-6"></i>
-            <span class="text-[9px] font-extrabold uppercase tracking-widest">Console</span>
+            <i data-lucide="zap" class="w-6 h-6"></i>
+            <span class="text-[9px] font-extrabold uppercase tracking-widest">Dash</span>
             <div class="indicator"></div>
         </button>
         <button class="dock-item flex flex-col items-center gap-1.5 relative transition-all" data-pane="browse">
             <i data-lucide="folder-search" class="w-6 h-6"></i>
-            <span class="text-[9px] font-extrabold uppercase tracking-widest">Library</span>
+            <span class="text-[9px] font-extrabold uppercase tracking-widest">Files</span>
             <div class="indicator"></div>
         </button>
         <button class="dock-item flex flex-col items-center gap-1.5 relative transition-all" data-pane="transfers">
             <i data-lucide="activity" class="w-6 h-6"></i>
-            <span class="text-[9px] font-extrabold uppercase tracking-widest">Traffic</span>
+            <span class="text-[9px] font-extrabold uppercase tracking-widest">Live</span>
             <div class="indicator"></div>
         </button>
         <button class="dock-item flex flex-col items-center gap-1.5 relative transition-all" data-pane="settings">
-            <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+            <i data-lucide="cpu" class="w-6 h-6"></i>
             <span class="text-[9px] font-extrabold uppercase tracking-widest">Intel</span>
             <div class="indicator"></div>
         </button>
     </nav>
 
-    <!-- ═══ SCANNER MODAL ═══ -->
-    <section id="connect-screen" class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl hidden flex flex-col">
+    <!-- Scanner -->
+    <section id="connect-screen" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl hidden flex flex-col">
         <div class="flex-1 relative">
             <video id="scanner-video" class="w-full h-full object-cover opacity-60" playsinline></video>
-            <div class="absolute inset-0 scanner-overlay"></div>
-            <div class="absolute inset-0 scanner-line"></div>
-            
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/20 rounded-3xl">
-                <div class="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-xl"></div>
-                <div class="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-xl"></div>
-                <div class="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-xl"></div>
-                <div class="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-xl"></div>
-            </div>
-
-            <div class="absolute top-16 left-0 right-0 px-10 text-center">
-                <h2 class="text-xl font-extrabold text-white tracking-tighter italic uppercase mb-2">Native Pairing</h2>
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Align QR Code to establish bridge</p>
+            <div class="scanner-line"></div>
+            <div class="absolute inset-0 border-[60px] border-black/40"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-blue-500/50 rounded-3xl"></div>
+            <div class="absolute top-16 left-0 right-0 text-center">
+                <h2 class="text-xl font-extrabold text-white italic uppercase mb-2">Native Scan</h2>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Align QR to link bridge</p>
             </div>
         </div>
         <div class="p-10 bg-black">
-            <button id="btn-scan-start" class="w-full py-5 rounded-[24px] bg-blue-600 text-white font-extrabold text-sm uppercase tracking-widest shadow-lg shadow-blue-600/30 active:scale-95 transition-transform">
-                Initialize Scanner
-            </button>
-            <button id="btn-close-scanner" class="w-full py-4 mt-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-[0.3em]">Cancel Handshake</button>
+            <button id="btn-scan-start" class="w-full py-5 rounded-[24px] bg-blue-600 text-white font-extrabold text-sm uppercase tracking-widest shadow-lg">Start Scanning</button>
+            <button id="btn-close-scanner" class="w-full py-4 mt-2 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Cancel</button>
         </div>
     </section>
 
-    <!-- ═══ UPLOAD TOAST ═══ -->
-    <div id="upload-toast" class="fixed bottom-28 left-6 right-6 glass-card rounded-[28px] p-5 flex items-center gap-4 translate-y-20 opacity-0 transition-all z-40 border-blue-500/20 shadow-2xl">
+    <!-- Toast -->
+    <div id="upload-toast" class="fixed bottom-28 left-6 right-6 glass-card rounded-[28px] p-5 flex items-center gap-4 translate-y-20 opacity-0 transition-all z-40">
         <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
             <i data-lucide="arrow-up-circle" class="w-6 h-6"></i>
         </div>
         <div class="flex-1">
-            <p id="upload-toast-label" class="text-[11px] font-extrabold text-white uppercase tracking-wider">Syncing Payload...</p>
-            <div class="h-1.5 w-full bg-white/5 rounded-full mt-2 overflow-hidden border border-white/5">
+            <p id="upload-toast-label" class="text-[11px] font-extrabold text-white uppercase tracking-wider">Syncing...</p>
+            <div class="h-1 w-full bg-white/5 rounded-full mt-2 overflow-hidden">
                 <div id="upload-toast-fill" class="h-full bg-blue-500 transition-all duration-300" style="width:0%"></div>
             </div>
         </div>
@@ -325,10 +233,5 @@
 </div>
 
 <script src="app.js"></script>
-<script>
-    lucide.createIcons();
-    const observer = new MutationObserver(() => lucide.createIcons());
-    observer.observe(document.getElementById('app'), { childList: true, subtree: true });
-</script>
 </body>
 </html>
