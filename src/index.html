@@ -136,21 +136,24 @@
             </nav>
 
             <!-- Status Intel -->
-            <div class="p-6">
-                <div class="rounded-2xl bg-black/40 p-5 border border-white/5 shadow-inner">
+            <div class="p-6 mt-auto">
+                <div class="rounded-2xl bg-blue-600/10 p-5 border border-blue-500/20 shadow-inner">
                     <div class="flex items-center justify-between mb-4">
-                        <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">Node Status</span>
+                        <span class="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest">Bridge Active</span>
                         <div class="flex items-center gap-2">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                             <span id="connection-status" class="text-[9px] font-black text-emerald-500 uppercase">Live</span>
                         </div>
                     </div>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-[10px] text-slate-600 font-bold uppercase">Local IP</span>
-                            <span id="network-address" class="text-[10px] text-slate-400 font-mono tracking-tighter">--</span>
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Workstation IP</span>
+                            <span id="network-address" class="text-lg font-black text-white font-mono tracking-tighter">--</span>
                         </div>
-                        <div id="network-badge" class="text-[9px] text-slate-500 italic truncate uppercase font-bold tracking-tight">Scanning Interface...</div>
+                        <div>
+                            <span class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Security Token</span>
+                            <span id="security-token-display" class="text-sm font-black text-blue-500 font-mono tracking-widest italic">--</span>
+                        </div>
                     </div>
                 </div>
             </div>

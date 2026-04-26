@@ -44,6 +44,7 @@ async function init() {
         ]);
 
         qrCodeEl.innerHTML = info.svg;
+        document.getElementById('security-token-display').textContent = info.token;
         hydrateNetworkUI(network);
 
         await loadFiles(currentPath);
